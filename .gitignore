@@ -1,0 +1,30 @@
+node_modules
+
+# ── Environment files (NEVER commit secrets) ─────────────────────────────────
+.env
+.env.local
+.env.production
+.env.docker
+.env.*.local
+
+# ── Next.js ──────────────────────────────────────────────────────────────────
+.next/
+out/
+
+# ── Prisma generated ─────────────────────────────────────────────────────────
+/src/generated/prisma
+
+# ── Docker volumes / temp ─────────────────────────────────────────────────────
+docker/postgres/data/
+
+# ── OS & Editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/settings.json
+
+# ── Build artifacts ───────────────────────────────────────────────────────────
+dist/
+build/
+*.tsbuildinfo

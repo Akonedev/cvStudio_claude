@@ -1,0 +1,156 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  CV Studio Claude — Docker Compose
+#  Prefix: cvStudio_Claude_
+#  Port range: 12450–12470
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#  Services:
+#    12450 → Next.js App
+#    12451 → PostgreSQL
+#    12452 → pgAdmin 4
+#    12453 → Redis
+#    12454 → Nginx (reverse proxy / SSL termination)
+#
+#  Usage:
+#    docker compose --env-file .env.docker up -d
+#    docker compose --env-file .env.docker down
+#    docker compose --env-file .env.docker logs -f app
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: cvstudio_claude
+
+networks:
+  cvStudio_Claude_network:
+    driver: bridge
+
+volumes:
+  cvStudio_Claude_postgres_data:
+  cvStudio_Claude_pgadmin_data:
+  cvStudio_Claude_redis_data:
+  cvStudio_Claude_app_node_modules:
+
+services:
+
+  # ─── PostgreSQL ─────────────────────────────────────────────────────────────
+  cvStudio_Claude_postgres:
+    image: postgres:16-alpine
+    container_name: cvStudio_Claude_postgres
+    restart: unless-stopped
+    ports:
+      - "12451:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cvstudio}
+      POSTGRES_USER: ${POSTGRES_USER:-cvstudio_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cvstudio_secret_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - cvStudio_Claude_postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - cvStudio_Claude_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cvstudio_user} -d ${POSTGRES_DB:-cvstudio}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── pgAdmin 4 ──────────────────────────────────────────────────────────────
+  cvStudio_Claude_pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: cvStudio_Claude_pgadmin
+    restart: unless-stopped
+    ports:
+      - "12452:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@cvstudio.fr}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-cvstudio_pgadmin_pass}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    volumes:
+      - cvStudio_Claude_pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - cvStudio_Claude_network
+    depends_on:
+      cvStudio_Claude_postgres:
+        condition: service_healthy
+
+  # ─── Redis ──────────────────────────────────────────────────────────────────
+  cvStudio_Claude_redis:
+    image: redis:7-alpine
+    container_name: cvStudio_Claude_redis
+    restart: unless-stopped
+    ports:
+      - "12453:6379"
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-cvstudio_redis_pass}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - cvStudio_Claude_redis_data:/data
+    networks:
+      - cvStudio_Claude_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-cvstudio_redis_pass}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Next.js App ────────────────────────────────────────────────────────────
+  cvStudio_Claude_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    image: cvstudio_claude_app:latest
+    container_name: cvStudio_Claude_app
+    restart: unless-stopped
+    ports:
+      - "12450:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cvstudio_user}:${POSTGRES_PASSWORD:-cvstudio_secret_password}@cvStudio_Claude_postgres:5432/${POSTGRES_DB:-cvstudio}?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD:-cvstudio_redis_pass}@cvStudio_Claude_redis:6379
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:12450}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      AUTH_URL: ${NEXTAUTH_URL:-http://localhost:12450}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+      AUTH_GITHUB_ID: ${AUTH_GITHUB_ID:-}
+      AUTH_GITHUB_SECRET: ${AUTH_GITHUB_SECRET:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_PRO_MONTHLY: ${STRIPE_PRICE_PRO_MONTHLY:-}
+      STRIPE_PRICE_PRO_YEARLY: ${STRIPE_PRICE_PRO_YEARLY:-}
+      STRIPE_PRICE_ELITE_MONTHLY: ${STRIPE_PRICE_ELITE_MONTHLY:-}
+      STRIPE_PRICE_ELITE_YEARLY: ${STRIPE_PRICE_ELITE_YEARLY:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@cvstudio.fr}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-CHANGE_ME_32_chars_exactly_00000}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:12450}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+    networks:
+      - cvStudio_Claude_network
+    depends_on:
+      cvStudio_Claude_postgres:
+        condition: service_healthy
+      cvStudio_Claude_redis:
+        condition: service_healthy
+    volumes:
+      - cvStudio_Claude_app_node_modules:/app/node_modules
+
+  # ─── Nginx Reverse Proxy ────────────────────────────────────────────────────
+  cvStudio_Claude_nginx:
+    image: nginx:alpine
+    container_name: cvStudio_Claude_nginx
+    restart: unless-stopped
+    ports:
+      - "12454:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    networks:
+      - cvStudio_Claude_network
+    depends_on:
+      - cvStudio_Claude_app

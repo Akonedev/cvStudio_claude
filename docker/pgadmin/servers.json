@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "cvStudio_Claude_postgres",
+      "Group": "CV Studio",
+      "Host": "cvStudio_Claude_postgres",
+      "Port": 5432,
+      "MaintenanceDB": "cvstudio",
+      "Username": "cvstudio_user",
+      "SSLMode": "prefer",
+      "PassFile": "/pgpassfile"
+    }
+  }
+}

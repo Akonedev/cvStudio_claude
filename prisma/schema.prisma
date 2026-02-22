@@ -1,0 +1,647 @@
+// CV Studio - Prisma Schema
+// PostgreSQL + NextAuth v5 + full SaaS data model
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+//  AUTH (NextAuth v5 / Auth.js)
+// ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  firstName     String?
+  lastName      String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // hashed – null for OAuth users
+  phone         String?
+  jobTitle      String?
+  sector        String?
+  locale        String    @default("fr")
+  role          Role      @default(USER)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth relations
+  accounts      Account[]
+  sessions      Session[]
+
+  // App relations
+  cvs              CV[]
+  coverLetters     CoverLetter[]
+  jobOffers        JobOffer[]
+  jobMatches       JobMatch[]
+  interviewPreps   InterviewPrep[]
+  historyEntries   HistoryEntry[]
+  subscription     Subscription?
+  invoices         Invoice[]
+  notifications    Notification[]
+  aiSettings       UserAISettings?
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+// ─────────────────────────────────────────────
+//  CV & SECTIONS
+// ─────────────────────────────────────────────
+
+model CV {
+  id           String     @id @default(cuid())
+  userId       String
+  title        String
+  isActive     Boolean    @default(false)
+  atsScore     Int?
+  template     String     @default("classic")
+  hasSidebar   Boolean    @default(true)
+  sidebarPos   SidebarPos @default(LEFT)
+  sidebarTheme String     @default("amber")
+  headerStyle  String     @default("style1")
+  accentColor  String     @default("#F59E0B")
+  fontHeading  String     @default("Playfair Display")
+  fontBody     String     @default("DM Sans")
+  language     String     @default("fr")
+  data         Json       // full CV JSON blob
+  rawText      String?    @db.Text
+  fileUrl      String?
+  pageCount    Int        @default(1)
+  version      Int        @default(1)
+  status       CVStatus   @default(DRAFT)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections     CVSection[]
+  coverLetters CoverLetter[]
+  jobMatches   JobMatch[]
+  analyses     ATSAnalysis[]
+  exports      CVExport[]
+
+  @@map("cvs")
+}
+
+model CVSection {
+  id       String   @id @default(cuid())
+  cvId     String
+  type     String
+  title    String
+  isActive Boolean  @default(true)
+  order    Int
+  data     Json
+
+  cv CV @relation(fields: [cvId], references: [id], onDelete: Cascade)
+
+  @@map("cv_sections")
+}
+
+model ATSAnalysis {
+  id            String   @id @default(cuid())
+  cvId          String
+  score         Int
+  keywords      Json
+  suggestions   Json
+  categories    Json
+  jobOfferId    String?
+  createdAt     DateTime @default(now())
+
+  cv       CV        @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  jobOffer JobOffer? @relation(fields: [jobOfferId], references: [id])
+
+  @@map("ats_analyses")
+}
+
+model CVExport {
+  id        String     @id @default(cuid())
+  cvId      String
+  format    ExportFmt
+  fileUrl   String
+  fileSize  Int?
+  createdAt DateTime   @default(now())
+
+  cv CV @relation(fields: [cvId], references: [id], onDelete: Cascade)
+
+  @@map("cv_exports")
+}
+
+enum CVStatus {
+  DRAFT
+  COMPLETE
+  ARCHIVED
+}
+
+enum SidebarPos {
+  LEFT
+  RIGHT
+}
+
+enum ExportFmt {
+  PDF
+  DOCX
+  ODT
+  TXT
+  JSON
+}
+
+// ─────────────────────────────────────────────
+//  COVER LETTERS
+// ─────────────────────────────────────────────
+
+model CoverLetter {
+  id         String            @id @default(cuid())
+  userId     String
+  cvId       String?
+  title      String
+  content    String            @db.Text
+  tone       String            @default("professional")
+  language   String            @default("fr")
+  wordCount  Int?
+  jobOfferId String?
+  status     CoverLetterStatus @default(DRAFT)
+  version    Int               @default(1)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cv       CV?       @relation(fields: [cvId], references: [id])
+  jobOffer JobOffer? @relation(fields: [jobOfferId], references: [id])
+
+  @@map("cover_letters")
+}
+
+enum CoverLetterStatus {
+  DRAFT
+  FINAL
+  SENT
+}
+
+// ─────────────────────────────────────────────
+//  JOB OFFERS & MATCHING
+// ─────────────────────────────────────────────
+
+model JobOffer {
+  id            String     @id @default(cuid())
+  userId        String
+  url           String?
+  source        String?
+  title         String
+  company       String?
+  location      String?
+  contractType  String?
+  salary        String?
+  description   String?    @db.Text
+  requirements  Json?
+  skills        Json?
+  keywords      Json?
+  rawHtml       String?    @db.Text
+  scrapedAt     DateTime?
+  status        JobStatus  @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobMatches     JobMatch[]
+  coverLetters   CoverLetter[]
+  atsAnalyses    ATSAnalysis[]
+  applications   Application[]
+  interviewPreps InterviewPrep[]
+
+  @@map("job_offers")
+}
+
+model JobMatch {
+  id              String   @id @default(cuid())
+  userId          String
+  cvId            String
+  jobOfferId      String
+  matchScore      Int
+  matchDetails    Json
+  adaptedCvData   Json?
+  aiInsights      Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cv       CV       @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  jobOffer JobOffer @relation(fields: [jobOfferId], references: [id], onDelete: Cascade)
+
+  @@unique([cvId, jobOfferId])
+  @@map("job_matches")
+}
+
+model Application {
+  id             String            @id @default(cuid())
+  userId         String
+  jobOfferId     String
+  cvId           String?
+  coverLetterId  String?
+  status         ApplicationStatus @default(PENDING)
+  appliedAt      DateTime          @default(now())
+  notes          String?           @db.Text
+  response       String?
+  nextStep       String?
+  updatedAt      DateTime          @updatedAt
+
+  jobOffer JobOffer @relation(fields: [jobOfferId], references: [id], onDelete: Cascade)
+
+  @@map("applications")
+}
+
+enum JobStatus {
+  ACTIVE
+  CLOSED
+  EXPIRED
+  ARCHIVED
+}
+
+enum ApplicationStatus {
+  PENDING
+  SENT
+  VIEWED
+  INTERVIEW
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+// ─────────────────────────────────────────────
+//  INTERVIEW PREP
+// ─────────────────────────────────────────────
+
+model InterviewPrep {
+  id            String          @id @default(cuid())
+  userId        String
+  jobOfferId    String?
+  cvId          String?
+  title         String
+  prepScore     Int?
+  status        InterviewStatus @default(DRAFT)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobOffer  JobOffer?          @relation(fields: [jobOfferId], references: [id])
+  questions InterviewQuestion[]
+
+  @@map("interview_preps")
+}
+
+model InterviewQuestion {
+  id              String           @id @default(cuid())
+  interviewPrepId String
+  question        String           @db.Text
+  category        QuestionCategory
+  difficulty      Difficulty       @default(MEDIUM)
+  tips            Json?
+  modelAnswer     String?          @db.Text
+  userAnswer      String?          @db.Text
+  aiScore         Int?
+  aiFeedback      String?          @db.Text
+  order           Int              @default(0)
+
+  interviewPrep InterviewPrep @relation(fields: [interviewPrepId], references: [id], onDelete: Cascade)
+
+  @@map("interview_questions")
+}
+
+enum InterviewStatus {
+  DRAFT
+  READY
+  COMPLETED
+}
+
+enum QuestionCategory {
+  BEHAVIORAL
+  TECHNICAL
+  LEADERSHIP
+  SITUATIONAL
+  CULTURE_FIT
+  SALARY
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// ─────────────────────────────────────────────
+//  HISTORY
+// ─────────────────────────────────────────────
+
+model HistoryEntry {
+  id          String        @id @default(cuid())
+  userId      String
+  action      HistoryAction
+  entityType  EntityType
+  entityId    String?
+  entityName  String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  duration    Int?
+  createdAt   DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("history_entries")
+}
+
+enum HistoryAction {
+  CREATE
+  UPDATE
+  DELETE
+  VIEW
+  EXPORT
+  GENERATE
+  ANALYZE
+  LOGIN
+  LOGOUT
+  PAYMENT
+  SUBSCRIBE
+  CANCEL
+}
+
+enum EntityType {
+  CV
+  COVER_LETTER
+  JOB_OFFER
+  JOB_MATCH
+  INTERVIEW_PREP
+  APPLICATION
+  SUBSCRIPTION
+  AI_CHAT
+}
+
+// ─────────────────────────────────────────────
+//  SUBSCRIPTIONS & PAYMENTS (Stripe)
+// ─────────────────────────────────────────────
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  plan                 SubscriptionPlan   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?
+  trialStart           DateTime?
+  trialEnd             DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id                    String        @id @default(cuid())
+  userId                String
+  subscriptionId        String?
+  stripeInvoiceId       String?       @unique
+  stripePaymentIntentId String?
+  amount                Int           // centimes
+  currency              String        @default("eur")
+  status                InvoiceStatus @default(PENDING)
+  description           String?
+  pdfUrl                String?
+  periodStart           DateTime?
+  periodEnd             DateTime?
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@map("invoices")
+}
+
+model StripeWebhookEvent {
+  id        String   @id @default(cuid())
+  eventId   String   @unique
+  type      String
+  payload   Json
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("stripe_webhook_events")
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ELITE
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  TRIALING
+  INCOMPLETE
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  FAILED
+  VOID
+  REFUNDED
+}
+
+// ─────────────────────────────────────────────
+//  AI PROVIDERS & MODELS
+// ─────────────────────────────────────────────
+
+model AIProvider {
+  id          String         @id @default(cuid())
+  name        String
+  type        AIProviderType
+  baseUrl     String
+  apiKey      String?        @db.Text
+  isActive    Boolean        @default(true)
+  isDefault   Boolean        @default(false)
+  priority    Int            @default(0)
+  config      Json?
+  healthCheck DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  models    AIModel[]
+  usageLogs AIUsageLog[]
+
+  @@map("ai_providers")
+}
+
+model AIModel {
+  id           String   @id @default(cuid())
+  providerId   String
+  modelId      String
+  name         String
+  isActive     Boolean  @default(true)
+  isDefault    Boolean  @default(false)
+  contextLen   Int?
+  maxTokens    Int?
+  capabilities Json?
+  costPer1k    Float?
+  createdAt    DateTime @default(now())
+
+  provider  AIProvider   @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  usageLogs AIUsageLog[]
+
+  @@unique([providerId, modelId])
+  @@map("ai_models")
+}
+
+model AIUsageLog {
+  id           String   @id @default(cuid())
+  providerId   String
+  modelId      String?
+  userId       String?
+  action       String
+  inputTokens  Int?
+  outputTokens Int?
+  latencyMs    Int?
+  success      Boolean  @default(true)
+  error        String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  provider AIProvider @relation(fields: [providerId], references: [id])
+  model    AIModel?   @relation(fields: [modelId], references: [id])
+
+  @@map("ai_usage_logs")
+}
+
+enum AIProviderType {
+  OPENAI
+  ANTHROPIC
+  GOOGLE
+  MISTRAL
+  DEEPSEEK
+  OPENROUTER
+  OLLAMA
+  LMSTUDIO
+  VLLM
+  MOONSHOT
+  MINIMAX
+  CUSTOM
+}
+
+// ─────────────────────────────────────────────
+//  NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  PAYMENT
+  SYSTEM
+}
+
+// ─────────────────────────────────────────────
+//  USER AI SETTINGS
+// ─────────────────────────────────────────────
+
+model UserAISettings {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  preferredLanguage    String   @default("fr")
+  writingTone          String   @default("professional")
+  targetSector         String?
+  proactiveSuggestions Boolean  @default(true)
+  realtimeAts          Boolean  @default(true)
+  preferredModel       String?
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_ai_settings")
+}
