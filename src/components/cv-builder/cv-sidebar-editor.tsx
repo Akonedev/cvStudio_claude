@@ -1,101 +1,332 @@
 "use client";
 
+import { useCVEditorStore } from "@/store/cv-editor-store";
+import { SIDEBAR_THEMES, CV_TEMPLATES, TEMPLATE_CATEGORIES, getTemplateById } from "@/lib/cv-templates";
+import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { PanelLeft, PanelRight, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  PanelLeft, PanelRight, Palette, Maximize2, Columns3, Check,
+  LayoutTemplate, Eye, EyeOff, GripVertical
+} from "lucide-react";
+import { useState } from "react";
 
-const sidebarTemplates = [
-  { id: "classic-dark", name: "Classic Dark", preview: "bg-stone-900" },
-  { id: "navy-pro", name: "Navy Pro", preview: "bg-slate-800" },
-  { id: "forest", name: "Forest", preview: "bg-emerald-900" },
-  { id: "burgundy", name: "Burgundy", preview: "bg-rose-900" },
-  { id: "midnight", name: "Midnight", preview: "bg-indigo-900" },
-  { id: "charcoal", name: "Charcoal", preview: "bg-zinc-800" },
+// ─── Sidebar width options ──────────────────────────────────────────────────
+const SIDEBAR_WIDTHS = [
+  { id: "narrow" as const, label: "Étroite", size: "160px" },
+  { id: "medium" as const, label: "Moyenne", size: "190px" },
+  { id: "wide" as const, label: "Large", size: "220px" },
 ];
 
-interface CVSidebarEditorProps {
-  showSidebar: boolean;
-  setShowSidebar: (v: boolean) => void;
-  sidebarPosition: "left" | "right";
-  setSidebarPosition: (v: "left" | "right") => void;
-}
+// ─── Sidebar element options ────────────────────────────────────────────────
+const SIDEBAR_ELEMENTS = [
+  { id: "photo", label: "Photo de profil" },
+  { id: "contact", label: "Informations de contact" },
+  { id: "skills", label: "Compétences" },
+  { id: "languages", label: "Langues" },
+  { id: "hobbies", label: "Centres d'intérêt" },
+  { id: "social", label: "Liens sociaux" },
+];
 
-export function CVSidebarEditor({ 
-  showSidebar, setShowSidebar, sidebarPosition, setSidebarPosition 
-}: CVSidebarEditorProps) {
+export function CVSidebarEditor() {
+  const {
+    sidebarConfig, setSidebarConfig,
+    headerConfig, setHeaderConfig,
+    template, setTemplate,
+    sections, setSectionInSidebar,
+  } = useCVEditorStore();
+
+  const [activeCategory, setActiveCategory] = useState("all");
+
+  const currentTemplate = getTemplateById(template);
+
+  // Filter templates by category
+  const filteredTemplates = activeCategory === "all"
+    ? CV_TEMPLATES
+    : CV_TEMPLATES.filter((t) => t.category === activeCategory);
+
+  // Sections that can be placed in sidebar
+  const assignableSections = sections.filter((s) => s.enabled);
+
   return (
-    <div className="space-y-5">
-      {/* Show/hide sidebar */}
-      <div className="flex items-center justify-between">
-        <div>
-          <Label className="text-sm font-medium">Barre latérale</Label>
-          <p className="text-xs text-muted-foreground">Afficher une colonne latérale</p>
+    <div className="space-y-5 p-4 text-sm overflow-y-auto max-h-[calc(100vh-200px)]">
+      {/* ─── Template Selection ──────────────────────────────────────────── */}
+      <section>
+        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-2 flex items-center gap-2">
+          <LayoutTemplate className="h-4 w-4" />
+          Modèle de CV
+        </h3>
+        <p className="text-xs text-stone-500 mb-3">
+          Sélectionnez un modèle. Les paramètres s&apos;adaptent automatiquement.
+        </p>
+
+        {/* Category filter */}
+        <div className="flex flex-wrap gap-1 mb-3">
+          {TEMPLATE_CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={cn(
+                "px-2 py-0.5 rounded-full text-xs font-medium transition-colors",
+                activeCategory === cat.id
+                  ? "bg-amber-500 text-white"
+                  : "bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-400"
+              )}
+            >
+              {cat.label}
+            </button>
+          ))}
         </div>
-        <Switch checked={showSidebar} onCheckedChange={setShowSidebar} />
-      </div>
 
-      {showSidebar && (
-        <>
-          <Separator />
-          
-          {/* Position */}
-          <div>
-            <Label className="text-sm font-medium block mb-3">Position</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {(["left", "right"] as const).map((pos) => (
-                <button
-                  key={pos}
-                  onClick={() => setSidebarPosition(pos)}
-                  className={`flex items-center justify-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${
-                    sidebarPosition === pos
-                      ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
-                      : "border-border bg-muted hover:border-border/80 text-muted-foreground"
-                  }`}
-                >
-                  {pos === "left" ? <PanelLeft className="w-4 h-4" /> : <PanelRight className="w-4 h-4" />}
-                  {pos === "left" ? "Gauche" : "Droite"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Templates */}
-          <div>
-            <Label className="text-sm font-medium block mb-3">Style de sidebar</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {sidebarTemplates.map((tmpl) => (
-                <button
-                  key={tmpl.id}
-                  className="group flex flex-col items-center gap-1.5"
-                >
-                  <div className={`w-full aspect-[1/1.4] ${tmpl.preview} rounded-lg border-2 border-transparent group-hover:border-amber-500/50 transition-all flex items-center justify-center relative`}>
-                    <div className="absolute inset-x-0 bottom-0 h-3/4 bg-white/5 m-1 rounded" />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">{tmpl.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Sidebar content */}
-          <div>
-            <Label className="text-sm font-medium block mb-3">Éléments de la sidebar</Label>
-            <div className="space-y-2">
-              {["Photo", "Coordonnées", "Compétences", "Langues", "Centres d'intérêt", "Réseaux sociaux"].map((el) => (
-                <div key={el} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                  <span className="text-xs">{el}</span>
-                  <Switch defaultChecked={["Photo", "Coordonnées", "Compétences", "Langues"].includes(el)} />
+        {/* Template grid */}
+        <div className="grid grid-cols-2 gap-2">
+          {filteredTemplates.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => {
+                setTemplate(t.id);
+                // Apply template defaults to sidebar config
+                setSidebarConfig({
+                  enabled: t.hasSidebar,
+                  theme: t.sidebarColor === "transparent" ? "classic-dark" :
+                    SIDEBAR_THEMES.find((s) => s.color === t.sidebarColor)?.id ?? "classic-dark",
+                  width: t.sidebarWidth,
+                  fullHeight: t.sidebarFullHeight,
+                });
+                setHeaderConfig({ style: t.headerStyle });
+              }}
+              className={cn(
+                "relative rounded-lg border-2 p-2 transition-all text-left",
+                template === t.id
+                  ? "border-amber-500 ring-2 ring-amber-200 dark:ring-amber-800"
+                  : "border-stone-200 dark:border-stone-700 hover:border-stone-300"
+              )}
+            >
+              {/* Template preview thumbnail */}
+              <div className={cn("w-full h-12 rounded mb-1.5 flex overflow-hidden", t.preview)}>
+                {t.hasSidebar && (
+                  <div
+                    className="h-full"
+                    style={{
+                      width: t.sidebarWidth === "narrow" ? "30%" : t.sidebarWidth === "wide" ? "40%" : "35%",
+                      backgroundColor: t.sidebarColor === "transparent" ? "#f4f4f5" : t.sidebarColor,
+                    }}
+                  />
+                )}
+                <div className="flex-1 p-1">
+                  <div className="h-1 w-3/4 rounded-full bg-stone-300/40 mb-0.5" />
+                  <div className="h-0.5 w-1/2 rounded-full bg-stone-300/30" />
                 </div>
-              ))}
-            </div>
+              </div>
+              <div className="text-xs font-medium text-stone-700 dark:text-stone-300 truncate">
+                {t.name}
+              </div>
+              <div className="text-[10px] text-stone-400 truncate">{t.description}</div>
+              {template === t.id && (
+                <div className="absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
+                  <Check className="h-2.5 w-2.5 text-white" />
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* ─── Sidebar Toggle ──────────────────────────────────────────────── */}
+      <section>
+        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-3 flex items-center gap-2">
+          <Columns3 className="h-4 w-4" />
+          Sidebar
+        </h3>
+
+        <div className="space-y-3">
+          {/* Enable/Disable */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="sidebar-toggle" className="text-xs">Activer la sidebar</Label>
+            <Switch
+              id="sidebar-toggle"
+              checked={sidebarConfig.enabled}
+              onCheckedChange={(v) => setSidebarConfig({ enabled: v })}
+            />
           </div>
-        </>
-      )}
+
+          {sidebarConfig.enabled && (
+            <>
+              {/* Position */}
+              <div>
+                <Label className="text-xs mb-1.5 block">Position</Label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSidebarConfig({ position: "left" })}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors",
+                      sidebarConfig.position === "left"
+                        ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-400"
+                        : "border-stone-200 text-stone-500 dark:border-stone-700"
+                    )}
+                  >
+                    <PanelLeft className="h-3.5 w-3.5" /> Gauche
+                  </button>
+                  <button
+                    onClick={() => setSidebarConfig({ position: "right" })}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors",
+                      sidebarConfig.position === "right"
+                        ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-400"
+                        : "border-stone-200 text-stone-500 dark:border-stone-700"
+                    )}
+                  >
+                    <PanelRight className="h-3.5 w-3.5" /> Droite
+                  </button>
+                </div>
+              </div>
+
+              {/* Full height */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Maximize2 className="h-3 w-3 text-stone-400" />
+                  <Label htmlFor="full-height" className="text-xs">Pleine hauteur</Label>
+                </div>
+                <Switch
+                  id="full-height"
+                  checked={sidebarConfig.fullHeight}
+                  onCheckedChange={(v) => setSidebarConfig({ fullHeight: v })}
+                />
+              </div>
+
+              {/* Width */}
+              <div>
+                <Label className="text-xs mb-1.5 block">Largeur</Label>
+                <div className="flex gap-1.5">
+                  {SIDEBAR_WIDTHS.map((w) => (
+                    <button
+                      key={w.id}
+                      onClick={() => setSidebarConfig({ width: w.id })}
+                      className={cn(
+                        "flex-1 px-2 py-1 rounded text-xs font-medium border transition-colors",
+                        sidebarConfig.width === w.id
+                          ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30"
+                          : "border-stone-200 text-stone-500 dark:border-stone-700"
+                      )}
+                    >
+                      {w.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Theme */}
+              <div>
+                <Label className="text-xs mb-1.5 block flex items-center gap-1.5">
+                  <Palette className="h-3 w-3" /> Thème de couleur
+                </Label>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {SIDEBAR_THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setSidebarConfig({ theme: t.id })}
+                      title={t.name}
+                      className={cn(
+                        "w-full aspect-square rounded-md border-2 transition-all relative",
+                        sidebarConfig.theme === t.id
+                          ? "border-amber-500 ring-1 ring-amber-300"
+                          : "border-transparent hover:border-stone-300"
+                      )}
+                      style={{ backgroundColor: t.color }}
+                    >
+                      {sidebarConfig.theme === t.id && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Check className={cn(
+                            "h-3 w-3",
+                            t.color === "#F4F4F5" || t.color === "#FAFAF9" ? "text-stone-800" : "text-white"
+                          )} />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Header in sidebar */}
+              <div className="flex items-center justify-between">
+                <Label htmlFor="header-in-sidebar" className="text-xs">
+                  Nom / Titre dans la sidebar
+                </Label>
+                <Switch
+                  id="header-in-sidebar"
+                  checked={headerConfig.inSidebar}
+                  onCheckedChange={(v) => setHeaderConfig({ inSidebar: v })}
+                />
+              </div>
+
+              <Separator className="my-2" />
+
+              {/* ─── Sidebar Elements ──────────────────────────────────────── */}
+              <div>
+                <Label className="text-xs mb-2 block font-semibold">Éléments à afficher</Label>
+                <div className="space-y-2">
+                  {SIDEBAR_ELEMENTS.map((el) => (
+                    <div key={el.id} className="flex items-center justify-between">
+                      <span className="text-xs text-stone-600 dark:text-stone-400">{el.label}</span>
+                      <Switch
+                        checked={sidebarConfig.elements[el.id] ?? false}
+                        onCheckedChange={(v) =>
+                          setSidebarConfig({
+                            elements: { ...sidebarConfig.elements, [el.id]: v }
+                          })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Separator className="my-2" />
+
+              {/* ─── Sections → Sidebar assignment ─────────────────────────── */}
+              <div>
+                <Label className="text-xs mb-2 block font-semibold">
+                  Sections dans la sidebar
+                </Label>
+                <p className="text-[10px] text-stone-400 mb-2">
+                  Cochez les sections à placer dans la sidebar plutôt que dans la zone principale.
+                </p>
+                <div className="space-y-1.5">
+                  {assignableSections.map((sec) => (
+                    <div
+                      key={sec.id}
+                      className={cn(
+                        "flex items-center justify-between px-2 py-1 rounded-md transition-colors",
+                        sec.inSidebar
+                          ? "bg-amber-50 dark:bg-amber-900/20"
+                          : "hover:bg-stone-50 dark:hover:bg-stone-800"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">{sec.icon}</span>
+                        <span className="text-xs text-stone-700 dark:text-stone-300">{sec.label}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="text-[9px] px-1">
+                          {sec.inSidebar ? "Sidebar" : "Principal"}
+                        </Badge>
+                        <Switch
+                          checked={sec.inSidebar}
+                          onCheckedChange={(v) => setSectionInSidebar(sec.id, v)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

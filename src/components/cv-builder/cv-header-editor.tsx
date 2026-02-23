@@ -1,78 +1,213 @@
 "use client";
 
+import { useCVEditorStore, type PersonalInfo } from "@/store/cv-editor-store";
+import { HEADER_STYLES } from "@/lib/cv-templates";
+import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import {
+  User, Mail, Phone, MapPin, Linkedin, Github, Globe, Camera,
+  AlignLeft, AlignCenter, Check, PanelLeft
+} from "lucide-react";
 
-const headerTemplates = [
-  { id: "classic", name: "Classic", accent: "bg-amber-500" },
-  { id: "modern", name: "Modern", accent: "bg-teal-500" },
-  { id: "minimal", name: "Minimal", accent: "bg-stone-400" },
-  { id: "bold", name: "Bold", accent: "bg-stone-900" },
-  { id: "gradient", name: "Gradient", accent: "bg-gradient-to-r from-amber-400 to-rose-400" },
-  { id: "split", name: "Split", accent: "bg-slate-700" },
+// ─── Header field definitions ───────────────────────────────────────────────
+const HEADER_FIELDS: {
+  key: keyof PersonalInfo;
+  label: string;
+  icon: React.ElementType;
+  placeholder: string;
+  configKey?: string;
+}[] = [
+  { key: "firstName", label: "Prénom", icon: User, placeholder: "Jean" },
+  { key: "lastName", label: "Nom", icon: User, placeholder: "Dupont" },
+  { key: "jobTitle", label: "Titre", icon: AlignLeft, placeholder: "Développeur Full Stack" },
+  { key: "email", label: "Email", icon: Mail, placeholder: "jean@example.com", configKey: "showEmail" },
+  { key: "phone", label: "Téléphone", icon: Phone, placeholder: "+33 6 12 34 56 78", configKey: "showPhone" },
+  { key: "address", label: "Adresse / Ville", icon: MapPin, placeholder: "Paris, France", configKey: "showAddress" },
+  { key: "linkedin", label: "LinkedIn", icon: Linkedin, placeholder: "linkedin.com/in/jean", configKey: "showLinkedin" },
+  { key: "github", label: "GitHub", icon: Github, placeholder: "github.com/jean", configKey: "showGithub" },
+  { key: "website", label: "Site web", icon: Globe, placeholder: "https://jean.dev", configKey: "showWebsite" },
+];
+
+// ─── Photo position options ─────────────────────────────────────────────────
+const PHOTO_POSITIONS = [
+  { id: "left" as const, label: "Gauche" },
+  { id: "center" as const, label: "Centre" },
+  { id: "right" as const, label: "Droite" },
 ];
 
 export function CVHeaderEditor() {
+  const {
+    data, headerConfig, setHeaderConfig, updatePersonalInfo
+  } = useCVEditorStore();
+
+  const { personalInfo } = data;
+
   return (
-    <div className="space-y-5">
-      {/* Header templates */}
-      <div>
-        <Label className="text-sm font-medium block mb-3">Modèle d'en-tête</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {headerTemplates.map((tmpl) => (
-            <button key={tmpl.id} className="group flex flex-col items-center gap-1.5">
-              <div className="w-full aspect-[2/1] bg-white rounded-lg border-2 border-transparent group-hover:border-amber-500/50 transition-all overflow-hidden p-1">
-                <div className={`w-full h-1.5 ${tmpl.accent} rounded-sm mb-1`} />
-                <div className="h-1 bg-stone-200 rounded w-2/3 mb-0.5" />
-                <div className="h-0.5 bg-stone-100 rounded w-1/2" />
+    <div className="space-y-5 p-4 text-sm overflow-y-auto max-h-[calc(100vh-200px)]">
+      {/* ─── Header Style ────────────────────────────────────────────────── */}
+      <section>
+        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-2">
+          Style d&apos;en-tête
+        </h3>
+        <div className="grid grid-cols-2 gap-1.5">
+          {HEADER_STYLES.map((style) => (
+            <button
+              key={style.id}
+              onClick={() => setHeaderConfig({ style: style.id })}
+              className={cn(
+                "flex flex-col items-start px-2.5 py-2 rounded-md border text-left transition-all",
+                headerConfig.style === style.id
+                  ? "bg-amber-50 border-amber-300 dark:bg-amber-900/30 dark:border-amber-700"
+                  : "border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800"
+              )}
+            >
+              <div className="flex items-center gap-1.5 w-full">
+                <span className="text-xs font-medium text-stone-700 dark:text-stone-300">{style.name}</span>
+                {headerConfig.style === style.id && (
+                  <Check className="h-3 w-3 text-amber-500 ml-auto" />
+                )}
               </div>
-              <span className="text-[10px] text-muted-foreground">{tmpl.name}</span>
+              <span className="text-[10px] text-stone-400 mt-0.5">{style.description}</span>
             </button>
           ))}
         </div>
-      </div>
+      </section>
 
       <Separator />
 
-      {/* Content fields */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">Contenu de l'en-tête</Label>
-        {[
-          { label: "Nom complet", placeholder: "Jean Dupont", enabled: true },
-          { label: "Titre / Poste", placeholder: "Senior Developer", enabled: true },
-          { label: "Email", placeholder: "jean@example.com", enabled: true },
-          { label: "Téléphone", placeholder: "+33 6 ...", enabled: true },
-          { label: "Adresse", placeholder: "Paris, France", enabled: true },
-          { label: "LinkedIn", placeholder: "linkedin.com/in/...", enabled: false },
-          { label: "GitHub", placeholder: "github.com/...", enabled: false },
-          { label: "Site web", placeholder: "https://...", enabled: false },
-        ].map((field) => (
-          <div key={field.label} className="flex items-center gap-2">
-            <Switch defaultChecked={field.enabled} className="flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs text-muted-foreground mb-1">{field.label}</div>
-              <Input
-                placeholder={field.placeholder}
-                className="h-7 text-xs bg-background border-border/60"
-              />
+      {/* ─── Photo Config ────────────────────────────────────────────────── */}
+      <section>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-stone-800 dark:text-stone-200 flex items-center gap-1.5">
+            <Camera className="h-4 w-4" /> Photo
+          </h3>
+          <Switch
+            checked={headerConfig.showPhoto}
+            onCheckedChange={(v) => setHeaderConfig({ showPhoto: v })}
+          />
+        </div>
+        {headerConfig.showPhoto && (
+          <div>
+            <Label className="text-xs mb-1.5 block">Position</Label>
+            <div className="flex gap-1.5">
+              {PHOTO_POSITIONS.map((pos) => (
+                <button
+                  key={pos.id}
+                  onClick={() => setHeaderConfig({ photoPosition: pos.id })}
+                  className={cn(
+                    "flex-1 px-2 py-1 rounded text-xs border transition-colors",
+                    headerConfig.photoPosition === pos.id
+                      ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30"
+                      : "border-stone-200 text-stone-500 dark:border-stone-700"
+                  )}
+                >
+                  {pos.label}
+                </button>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        )}
+      </section>
 
       <Separator />
 
-      {/* Photo */}
-      <div className="flex items-center justify-between">
-        <div>
-          <Label className="text-sm font-medium">Photo de profil</Label>
-          <p className="text-xs text-muted-foreground">Ajouter dans l'en-tête</p>
+      {/* ─── In Sidebar Toggle ───────────────────────────────────────────── */}
+      <section>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <PanelLeft className="h-3.5 w-3.5 text-stone-400" />
+            <Label htmlFor="header-sidebar" className="text-xs font-semibold">
+              Infos perso dans la sidebar
+            </Label>
+          </div>
+          <Switch
+            id="header-sidebar"
+            checked={headerConfig.inSidebar}
+            onCheckedChange={(v) => setHeaderConfig({ inSidebar: v })}
+          />
         </div>
-        <Switch />
-      </div>
+        <p className="text-[10px] text-stone-400 mt-1">
+          Si activé, le nom, titre et contacts seront dans la sidebar (pas de doublon dans l&apos;en-tête).
+        </p>
+      </section>
+
+      <Separator />
+
+      {/* ─── Visibility toggles ──────────────────────────────────────────── */}
+      <section>
+        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-2">
+          Éléments visibles
+        </h3>
+        <div className="space-y-2">
+          {[
+            { key: "showName", label: "Nom complet" },
+            { key: "showTitle", label: "Titre professionnel" },
+            { key: "showEmail", label: "Email" },
+            { key: "showPhone", label: "Téléphone" },
+            { key: "showAddress", label: "Adresse" },
+            { key: "showLinkedin", label: "LinkedIn" },
+            { key: "showGithub", label: "GitHub" },
+            { key: "showWebsite", label: "Site web" },
+          ].map((item) => (
+            <div key={item.key} className="flex items-center justify-between">
+              <span className="text-xs text-stone-600 dark:text-stone-400">{item.label}</span>
+              <Switch
+                checked={(headerConfig as unknown as Record<string, unknown>)[item.key] as boolean}
+                onCheckedChange={(v) =>
+                  setHeaderConfig({ [item.key]: v } as Partial<typeof headerConfig>)
+                }
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* ─── Personal info fields ────────────────────────────────────────── */}
+      <section>
+        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-3">
+          Informations personnelles
+        </h3>
+        <div className="space-y-3">
+          {HEADER_FIELDS.map((field) => {
+            const Icon = field.icon;
+            return (
+              <div key={field.key}>
+                <Label className="text-xs mb-1 block flex items-center gap-1.5">
+                  <Icon className="h-3 w-3 text-stone-400" />
+                  {field.label}
+                </Label>
+                <Input
+                  value={personalInfo[field.key]}
+                  onChange={(e) => updatePersonalInfo(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  className="h-8 text-xs"
+                />
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* ─── Summary ─────────────────────────────────────────────────────── */}
+      <section>
+        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-2">
+          Profil / Résumé
+        </h3>
+        <textarea
+          value={data.summary}
+          onChange={(e) => useCVEditorStore.getState().setSummary(e.target.value)}
+          placeholder="Décrivez votre profil professionnel en quelques lignes..."
+          rows={4}
+          className="w-full rounded-md border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+        />
+      </section>
     </div>
   );
 }

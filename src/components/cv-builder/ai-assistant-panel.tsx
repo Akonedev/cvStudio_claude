@@ -1,170 +1,237 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useAIChat } from "@/hooks/use-ai-chat";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import {
-  Sparkles, Send, Zap, TrendingUp, AlertCircle, 
-  CheckCircle, RefreshCw, ChevronRight
+  Send, Loader2, Trash2, Sparkles, FileText, Target,
+  Wand2, ListChecks, Languages, PenLine, Bot, User, X
 } from "lucide-react";
 
-const suggestions = [
+interface AIAssistantPanelProps {
+  cvId: string;
+}
+
+// ─── Quick action prompts ───────────────────────────────────────────────────
+const QUICK_ACTIONS = [
   {
-    type: "improvement",
-    icon: TrendingUp,
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
-    message: "Ajoutez des métriques chiffrées à vos expériences pour augmenter l'impact.",
+    icon: Wand2,
+    label: "Améliorer le résumé",
+    prompt: "Améliore mon résumé professionnel pour le rendre plus impactant et orienté résultats.",
+    color: "text-amber-500",
   },
   {
-    type: "warning",
-    icon: AlertCircle,
-    color: "text-orange-400",
-    bg: "bg-orange-500/10",
-    message: "La section 'Profil' est trop courte (< 80 mots). Développez pour améliorer l'ATS.",
+    icon: Target,
+    label: "Optimiser ATS",
+    prompt: "Analyse mon CV et donne-moi des recommandations pour améliorer sa compatibilité ATS (Applicant Tracking System). Fournis des mots-clés manquants.",
+    color: "text-blue-500",
   },
   {
-    type: "success",
-    icon: CheckCircle,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    message: "Excellente utilisation des mots-clés techniques. Score ATS: 87/100 ✓",
+    icon: ListChecks,
+    label: "Vérifier les erreurs",
+    prompt: "Vérifie mon CV pour les fautes d'orthographe, de grammaire, les incohérences de dates et les améliorations possibles.",
+    color: "text-emerald-500",
+  },
+  {
+    icon: PenLine,
+    label: "Réécrire l'expérience",
+    prompt: "Réécris mes descriptions d'expérience professionnelle avec des verbes d'action forts et des métriques quantifiables.",
+    color: "text-violet-500",
+  },
+  {
+    icon: Languages,
+    label: "Traduire en anglais",
+    prompt: "Traduis tout le contenu de mon CV en anglais professionnel.",
+    color: "text-teal-500",
+  },
+  {
+    icon: FileText,
+    label: "Adapter pour un poste",
+    prompt: "Comment adapter mon CV pour un poste de [décris le poste] ? Fournis des suggestions de modifications.",
+    color: "text-rose-500",
   },
 ];
 
-const quickActions = [
-  "Améliorer le profil",
-  "Optimiser pour l'ATS",
-  "Réécrire une expérience",
-  "Suggérer des compétences",
-  "Raccourcir à 1 page",
-  "Adapter à une offre",
-];
+export function AIAssistantPanel({ cvId }: AIAssistantPanelProps) {
+  const { messages, isLoading, error, sendMessage, clearHistory, cancelRequest } = useAIChat({
+    context: "cv",
+    cvId,
+  });
 
-export function AIAssistantPanel() {
-  const [prompt, setPrompt] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [messages, setMessages] = useState<Array<{ role: "user" | "ai"; content: string }>>([
-    {
-      role: "ai",
-      content: "Bonjour ! Je suis votre assistant RH senior. Je vois votre CV — voici mes premières observations. Que souhaitez-vous améliorer ?",
-    },
-  ]);
+  const [input, setInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSend = async () => {
-    if (!prompt.trim()) return;
-    const userMessage = prompt;
-    setPrompt("");
-    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
-    setIsLoading(true);
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-    // Simulate AI response
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        role: "ai",
-        content: "Excellente question ! Pour votre profil Senior Developer, je vous recommande de mettre en avant votre leadership technique et vos réalisations chiffrées. Par exemple : 'Architecturé une plateforme SaaS servant 50K+ utilisateurs avec 99.9% de disponibilité'. Voulez-vous que je reformule une section spécifique ?",
-      }]);
-      setIsLoading(false);
-    }, 1500);
+  const handleSend = () => {
+    if (!input.trim() || isLoading) return;
+    sendMessage(input.trim());
+    setInput("");
+  };
+
+  const handleQuickAction = (prompt: string) => {
+    sendMessage(prompt);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-teal-500/20 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-teal-400" />
-          </div>
-          <div>
-            <div className="text-sm font-semibold">Assistant IA RH</div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] text-muted-foreground">Expert Senior disponible</span>
+      {/* ─── Messages area ───────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {messages.length === 0 ? (
+          <div className="space-y-4">
+            {/* Welcome */}
+            <div className="text-center py-4">
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-2">
+                <Sparkles className="h-5 w-5 text-amber-500" />
+              </div>
+              <h4 className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+                Assistant CV IA
+              </h4>
+              <p className="text-[10px] text-stone-400 mt-1">
+                Je peux vous aider à améliorer, corriger et optimiser votre CV.
+              </p>
+            </div>
+
+            {/* Quick actions */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-medium text-stone-400 uppercase">Actions rapides</span>
+              {QUICK_ACTIONS.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <button
+                    key={action.label}
+                    onClick={() => handleQuickAction(action.prompt)}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md border border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors text-left"
+                  >
+                    <Icon className={cn("h-3.5 w-3.5 flex-shrink-0", action.color)} />
+                    <span className="text-xs text-stone-600 dark:text-stone-400">{action.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Suggestions */}
-      <div className="p-3 border-b border-border space-y-2">
-        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium px-1">Recommandations</div>
-        {suggestions.map((s, i) => (
-          <div key={i} className={`flex items-start gap-2 p-2.5 rounded-lg ${s.bg} border border-border/40`}>
-            <s.icon className={`w-3.5 h-3.5 ${s.color} flex-shrink-0 mt-0.5`} />
-            <p className="text-[10px] text-muted-foreground leading-relaxed">{s.message}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Chat messages */}
-      <ScrollArea className="flex-1">
-        <div className="p-3 space-y-3">
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+        ) : (
+          <>
+            {messages.map((msg) => (
               <div
-                className={`max-w-[90%] rounded-xl px-3 py-2 text-[10px] leading-relaxed ${
-                  msg.role === "user"
-                    ? "bg-amber-500/20 text-amber-100 border border-amber-500/20"
-                    : "bg-muted text-muted-foreground border border-border/50"
-                }`}
+                key={msg.id}
+                className={cn(
+                  "flex gap-2",
+                  msg.role === "user" ? "justify-end" : "justify-start"
+                )}
               >
-                {msg.content}
+                {msg.role === "assistant" && (
+                  <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Bot className="h-3 w-3 text-amber-600" />
+                  </div>
+                )}
+                <div
+                  className={cn(
+                    "max-w-[85%] rounded-lg px-3 py-2 text-xs leading-relaxed",
+                    msg.role === "user"
+                      ? "bg-amber-500 text-white rounded-br-none"
+                      : "bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-bl-none"
+                  )}
+                >
+                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                  <div className={cn(
+                    "text-[9px] mt-1",
+                    msg.role === "user" ? "text-amber-200" : "text-stone-400"
+                  )}>
+                    {new Date(msg.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                  </div>
+                </div>
+                {msg.role === "user" && (
+                  <div className="w-6 h-6 rounded-full bg-stone-200 dark:bg-stone-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <User className="h-3 w-3 text-stone-500" />
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-muted rounded-xl px-3 py-2 flex items-center gap-2">
-                <RefreshCw className="w-3 h-3 text-teal-400 animate-spin" />
-                <span className="text-[10px] text-muted-foreground">Analyse en cours...</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+            ))}
 
-      {/* Quick actions */}
-      <div className="px-3 py-2 border-t border-border">
-        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2">Actions rapides</div>
-        <div className="flex flex-wrap gap-1">
-          {quickActions.map((action) => (
-            <button
-              key={action}
-              onClick={() => setPrompt(action)}
-              className="text-[9px] bg-muted hover:bg-muted/80 border border-border/60 text-muted-foreground hover:text-foreground rounded-full px-2 py-0.5 transition-colors"
-            >
-              {action}
-            </button>
-          ))}
-        </div>
+            {isLoading && (
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <Bot className="h-3 w-3 text-amber-600" />
+                </div>
+                <div className="bg-stone-100 dark:bg-stone-800 rounded-lg px-3 py-2 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin text-amber-500" />
+                    <span className="text-stone-400">Réflexion en cours...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                {error}
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </>
+        )}
       </div>
 
-      {/* Input */}
-      <div className="p-3 border-t border-border">
-        <div className="flex gap-2">
-          <Textarea
-            placeholder="Demandez à l'IA de modifier votre CV..."
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="text-xs min-h-0 h-16 resize-none bg-background border-border/60"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
+      {/* ─── Clear history ───────────────────────────────────────────────── */}
+      {messages.length > 0 && (
+        <div className="px-3 py-1 border-t border-stone-100 dark:border-stone-800">
+          <button
+            onClick={clearHistory}
+            className="flex items-center gap-1 text-[10px] text-stone-400 hover:text-stone-600 transition-colors"
+          >
+            <Trash2 className="h-2.5 w-2.5" />
+            Effacer l&apos;historique
+          </button>
+        </div>
+      )}
+
+      {/* ─── Input area ──────────────────────────────────────────────────── */}
+      <div className="p-3 border-t border-stone-200 dark:border-stone-800">
+        <div className="flex gap-1.5">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Posez une question sur votre CV..."
+            rows={1}
+            className="flex-1 rounded-md border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-2.5 py-1.5 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 min-h-[32px] max-h-[80px]"
+            style={{ height: "auto", overflow: "hidden" }}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = "auto";
+              target.style.height = Math.min(target.scrollHeight, 80) + "px";
             }}
           />
           <Button
-            size="icon"
-            className="w-9 h-16 btn-gradient flex-shrink-0"
-            onClick={handleSend}
-            disabled={isLoading || !prompt.trim()}
+            onClick={isLoading ? cancelRequest : handleSend}
+            disabled={!input.trim() && !isLoading}
+            size="sm"
+            className={cn(
+              "h-8 w-8 p-0",
+              isLoading ? "bg-red-500 hover:bg-red-600" : "bg-amber-500 hover:bg-amber-600"
+            )}
           >
-            <Send className="w-3.5 h-3.5" />
+            {isLoading ? (
+              <X className="h-3.5 w-3.5 text-white" />
+            ) : (
+              <Send className="h-3.5 w-3.5 text-white" />
+            )}
           </Button>
         </div>
       </div>

@@ -1,184 +1,383 @@
 "use client";
 
+import { useCVEditorStore } from "@/store/cv-editor-store";
+import { getSidebarThemeColor } from "@/lib/cv-templates";
 import { cn } from "@/lib/utils";
+import { Mail, Phone, MapPin, Linkedin, Github, Globe, User } from "lucide-react";
 
-interface CVPreviewPanelProps {
-  showSidebar: boolean;
-  sidebarPosition: "left" | "right";
+// ─── Sidebar width mapping ─────────────────────────────────────────────────
+function sidebarWidthPx(w: string) {
+  if (w === "narrow") return "160px";
+  if (w === "wide") return "220px";
+  return "190px"; // medium
 }
 
-const mockData = {
-  name: "Jean Dupont",
-  title: "Senior Full-Stack Developer",
-  email: "jean@example.com",
-  phone: "+33 6 12 34 56 78",
-  location: "Paris, France",
-  linkedin: "linkedin.com/in/jean",
-  summary: "Développeur Full-Stack passionné avec 8 ans d'expérience dans la conception et le développement d'applications web scalables. Expert React, Node.js et architectures cloud. Leader technique reconnu, j'ai guidé des équipes jusqu'à 12 développeurs dans des environnements Agile.",
-  skills: ["React", "TypeScript", "Node.js", "PostgreSQL", "Docker", "AWS", "GraphQL", "Leadership"],
-  experience: [
-    {
-      title: "Lead Developer",
-      company: "TechStartup SAS",
-      period: "2021 – Présent",
-      bullets: [
-        "Architecturé et livré une plateforme SaaS générant 2M€ ARR",
-        "Réduit le temps de chargement de 60% via l'optimisation des requêtes",
-        "Managé une équipe de 8 développeurs juniors et seniors",
-      ],
-    },
-    {
-      title: "Développeur Senior",
-      company: "Digital Agency",
-      period: "2018 – 2021",
-      bullets: [
-        "Développé 15+ applications web pour des clients Fortune 500",
-        "Mis en place des pratiques CI/CD réduisant les bugs de 40%",
-      ],
-    },
-  ],
-  education: [
-    { degree: "Master Informatique", school: "École Polytechnique", year: "2017" },
-  ],
-  languages: ["Français (natif)", "Anglais (C2)", "Espagnol (B2)"],
-};
+// ─── Accent color utility ───────────────────────────────────────────────────
+function isLightSidebar(color: string) {
+  if (!color || color === "transparent") return true;
+  // Simple check: if hex value is light
+  const hex = color.replace("#", "");
+  if (hex.length === 6) {
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 > 140;
+  }
+  return false;
+}
 
-export function CVPreviewPanel({ showSidebar, sidebarPosition }: CVPreviewPanelProps) {
+export function CVPreviewPanel() {
+  const {
+    data, headerConfig, sidebarConfig, sections, template,
+  } = useCVEditorStore();
+
+  const { personalInfo: info, summary, experience, education, skills, languages, certifications, projects, hobbies } = data;
+  const fullName = [info.firstName, info.lastName].filter(Boolean).join(" ") || "Votre Nom";
+
+  const sidebarColor = getSidebarThemeColor(sidebarConfig.theme);
+  const sidebarLight = isLightSidebar(sidebarColor);
+  const sidebarTextClass = sidebarLight ? "text-stone-800" : "text-white";
+  const sidebarMutedClass = sidebarLight ? "text-stone-500" : "text-stone-300";
+  const sidebarLabelClass = sidebarLight ? "text-stone-600" : "text-amber-400";
+  const sidebarBadgeBg = sidebarLight ? "bg-stone-200 text-stone-700" : "bg-white/10 text-stone-200";
+  const accentColor = sidebarLight ? "text-stone-800" : "text-amber-400";
+
+  // Sections logic: sidebar sections vs main sections
+  const enabledSections = sections.filter((s) => s.enabled).sort((a, b) => a.order - b.order);
+  const sidebarSections = enabledSections.filter((s) => s.inSidebar);
+  const mainSections = enabledSections.filter((s) => !s.inSidebar);
+
+  // Contact items for sidebar
+  const contactItems = [
+    headerConfig.showEmail && info.email && { icon: Mail, value: info.email },
+    headerConfig.showPhone && info.phone && { icon: Phone, value: info.phone },
+    headerConfig.showAddress && info.address && { icon: MapPin, value: info.address },
+    headerConfig.showLinkedin && info.linkedin && { icon: Linkedin, value: info.linkedin },
+    headerConfig.showGithub && info.github && { icon: Github, value: info.github },
+    headerConfig.showWebsite && info.website && { icon: Globe, value: info.website },
+  ].filter(Boolean) as Array<{ icon: React.ComponentType<{ className?: string }>; value: string }>;
+
+  // Determine if personal info should be in sidebar
+  const infoInSidebar = headerConfig.inSidebar && sidebarConfig.enabled;
+
   return (
     <div
-      className="bg-white text-stone-900 shadow-2xl"
+      className="bg-white text-stone-900 shadow-2xl relative overflow-hidden"
       style={{
         width: "210mm",
         minHeight: "297mm",
         fontFamily: "'DM Sans', sans-serif",
         fontSize: "9pt",
         lineHeight: "1.5",
+        printColorAdjust: "exact",
+        WebkitPrintColorAdjust: "exact",
       }}
     >
-      <div className={cn("flex h-full", sidebarPosition === "right" && "flex-row-reverse")}>
-        {/* Sidebar */}
-        {showSidebar && (
-          <div className="w-48 bg-stone-900 text-white flex-shrink-0 p-5 flex flex-col gap-5">
-            {/* Photo placeholder */}
-            <div className="w-20 h-20 rounded-full bg-amber-500/20 border-2 border-amber-400/40 mx-auto flex items-center justify-center">
-              <span className="text-2xl font-display font-bold text-amber-400">JD</span>
-            </div>
+      <div className={cn("flex min-h-[297mm]", sidebarConfig.position === "right" && "flex-row-reverse")}>
 
-            {/* Contact */}
-            <div>
-              <div className="text-[7pt] uppercase tracking-widest text-amber-400 mb-2 font-semibold">Contact</div>
-              <div className="space-y-1.5 text-[7.5pt] text-stone-300">
-                <div>{mockData.email}</div>
-                <div>{mockData.phone}</div>
-                <div>{mockData.location}</div>
-                <div>{mockData.linkedin}</div>
+        {/* ── SIDEBAR ────────────────────────────────────────────── */}
+        {sidebarConfig.enabled && (
+          <div
+            className="flex-shrink-0 flex flex-col gap-4 p-5"
+            style={{
+              width: sidebarWidthPx(sidebarConfig.width),
+              backgroundColor: sidebarColor,
+              minHeight: sidebarConfig.fullHeight ? "297mm" : "auto",
+            }}
+          >
+            {/* Photo placeholder + Name if in sidebar */}
+            {infoInSidebar && (
+              <div className="text-center mb-2">
+                {headerConfig.showPhoto && (
+                  <div className={cn("w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-3 border-2",
+                    sidebarLight ? "bg-stone-100 border-stone-300" : "bg-amber-500/20 border-amber-400/40")}>
+                    {info.photo ? (
+                      <img src={info.photo} alt={fullName} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <span className={cn("text-2xl font-bold", accentColor)}>
+                        {info.firstName?.[0]?.toUpperCase() ?? ""}{info.lastName?.[0]?.toUpperCase() ?? ""}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {headerConfig.showName && (
+                  <div className={cn("text-[12pt] font-bold leading-tight", sidebarTextClass)}>
+                    {fullName}
+                  </div>
+                )}
+                {headerConfig.showTitle && info.jobTitle && (
+                  <div className={cn("text-[9pt] mt-1", sidebarMutedClass)}>{info.jobTitle}</div>
+                )}
               </div>
-            </div>
+            )}
 
-            {/* Skills */}
-            <div>
-              <div className="text-[7pt] uppercase tracking-widest text-amber-400 mb-2 font-semibold">Compétences</div>
-              <div className="flex flex-wrap gap-1">
-                {mockData.skills.map((skill) => (
-                  <span key={skill} className="text-[6.5pt] bg-stone-700 text-stone-200 rounded px-1.5 py-0.5">
-                    {skill}
-                  </span>
-                ))}
+            {/* Contact section in sidebar */}
+            {(sidebarConfig.elements.contact ?? true) && contactItems.length > 0 && (
+              <div>
+                <div className={cn("text-[7pt] uppercase tracking-widest mb-2 font-semibold", sidebarLabelClass)}>Contact</div>
+                <div className="space-y-1.5">
+                  {contactItems.map((c, i) => (
+                    <div key={i} className={cn("flex items-start gap-1.5 text-[7.5pt]", sidebarMutedClass)}>
+                      <c.icon className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      <span className="break-all">{c.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Languages */}
-            <div>
-              <div className="text-[7pt] uppercase tracking-widest text-amber-400 mb-2 font-semibold">Langues</div>
-              <div className="space-y-1">
-                {mockData.languages.map((lang) => (
-                  <div key={lang} className="text-[7.5pt] text-stone-300">{lang}</div>
-                ))}
+            {/* Skills in sidebar */}
+            {(sidebarConfig.elements.skills ?? true) && skills.length > 0 &&
+              sidebarSections.some((s) => s.type === "skills") && (
+              <div>
+                <div className={cn("text-[7pt] uppercase tracking-widest mb-2 font-semibold", sidebarLabelClass)}>Compétences</div>
+                <div className="flex flex-wrap gap-1">
+                  {skills.map((s) => (
+                    <span key={s.id} className={cn("text-[6.5pt] rounded px-1.5 py-0.5", sidebarBadgeBg)}>
+                      {s.name}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Main content */}
-        <div className="flex-1 p-8">
-          {/* Header */}
-          <div className="border-b-2 border-amber-400 pb-5 mb-6">
-            <h1 className="text-[20pt] font-display font-bold text-stone-900 leading-none mb-1">
-              {mockData.name}
-            </h1>
-            <div className="text-[11pt] text-amber-600 font-medium">{mockData.title}</div>
-            {!showSidebar && (
-              <div className="flex flex-wrap gap-3 mt-2 text-[7.5pt] text-stone-500">
-                <span>{mockData.email}</span>
-                <span>·</span>
-                <span>{mockData.phone}</span>
-                <span>·</span>
-                <span>{mockData.location}</span>
+            {/* Languages in sidebar */}
+            {(sidebarConfig.elements.languages ?? true) && languages.length > 0 &&
+              sidebarSections.some((s) => s.type === "languages") && (
+              <div>
+                <div className={cn("text-[7pt] uppercase tracking-widest mb-2 font-semibold", sidebarLabelClass)}>Langues</div>
+                <div className="space-y-1">
+                  {languages.map((l) => (
+                    <div key={l.id} className={cn("text-[7.5pt]", sidebarMutedClass)}>
+                      {l.name}{l.level ? ` (${l.level})` : ""}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Hobbies in sidebar */}
+            {(sidebarConfig.elements.hobbies ?? false) && hobbies.length > 0 &&
+              sidebarSections.some((s) => s.type === "hobbies") && (
+              <div>
+                <div className={cn("text-[7pt] uppercase tracking-widest mb-2 font-semibold", sidebarLabelClass)}>Centres d&apos;intérêt</div>
+                <div className="space-y-1">
+                  {hobbies.map((h, i) => (
+                    <div key={i} className={cn("text-[7.5pt]", sidebarMutedClass)}>{h}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Certifications in sidebar */}
+            {sidebarSections.some((s) => s.type === "certifications") && certifications.length > 0 && (
+              <div>
+                <div className={cn("text-[7pt] uppercase tracking-widest mb-2 font-semibold", sidebarLabelClass)}>Certifications</div>
+                <div className="space-y-1.5">
+                  {certifications.map((c) => (
+                    <div key={c.id} className={cn("text-[7.5pt]", sidebarMutedClass)}>
+                      <div className={cn("font-medium", sidebarTextClass)}>{c.name}</div>
+                      {c.issuer && <div>{c.issuer}</div>}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
+        )}
 
-          {/* Summary */}
-          <div className="mb-5">
-            <div className="text-[7pt] uppercase tracking-widest text-amber-600 font-semibold mb-2">Profil</div>
-            <p className="text-[8pt] text-stone-600 leading-relaxed">{mockData.summary}</p>
-          </div>
-
-          {/* Experience */}
-          <div className="mb-5">
-            <div className="text-[7pt] uppercase tracking-widest text-amber-600 font-semibold mb-3">Expérience professionnelle</div>
-            <div className="space-y-4">
-              {mockData.experience.map((exp, i) => (
-                <div key={i}>
-                  <div className="flex items-start justify-between mb-1">
-                    <div>
-                      <div className="font-semibold text-[9pt] text-stone-800">{exp.title}</div>
-                      <div className="text-[8pt] text-stone-500">{exp.company}</div>
-                    </div>
-                    <div className="text-[7.5pt] text-stone-400 whitespace-nowrap">{exp.period}</div>
+        {/* ── MAIN CONTENT ──────────────────────────────────────── */}
+        <div className="flex-1 p-8 overflow-hidden">
+          {/* Header (when not in sidebar) */}
+          {!infoInSidebar && (
+            <div className={cn("pb-5 mb-6", headerConfig.style === "bold" ? "border-b-4" : "border-b-2", "border-amber-400")}>
+              {headerConfig.showPhoto && (
+                <div className="float-right ml-4 mb-2">
+                  <div className="w-16 h-16 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center">
+                    {info.photo ? (
+                      <img src={info.photo} alt={fullName} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <User className="w-6 h-6 text-stone-400" />
+                    )}
                   </div>
-                  <ul className="space-y-0.5">
-                    {exp.bullets.map((bullet, j) => (
-                      <li key={j} className="flex items-start gap-1.5 text-[7.5pt] text-stone-600">
-                        <span className="text-amber-500 mt-0.5">▸</span>
-                        {bullet}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Education */}
-          <div>
-            <div className="text-[7pt] uppercase tracking-widest text-amber-600 font-semibold mb-3">Formation</div>
-            {mockData.education.map((edu, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-[9pt] text-stone-800">{edu.degree}</div>
-                  <div className="text-[8pt] text-stone-500">{edu.school}</div>
+              )}
+              {headerConfig.showName && (
+                <h1 className="text-[20pt] font-bold leading-none mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  {fullName}
+                </h1>
+              )}
+              {headerConfig.showTitle && info.jobTitle && (
+                <div className="text-[11pt] text-amber-600 font-medium">{info.jobTitle}</div>
+              )}
+              {contactItems.length > 0 && (
+                <div className="flex flex-wrap gap-3 mt-2 text-[7.5pt] text-stone-500">
+                  {contactItems.map((c, i) => (
+                    <span key={i} className="flex items-center gap-1">
+                      <c.icon className="w-2.5 h-2.5" />
+                      {c.value}
+                    </span>
+                  ))}
                 </div>
-                <div className="text-[7.5pt] text-stone-400">{edu.year}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Skills row if no sidebar */}
-          {!showSidebar && (
-            <div className="mt-5">
-              <div className="text-[7pt] uppercase tracking-widest text-amber-600 font-semibold mb-2">Compétences</div>
-              <div className="flex flex-wrap gap-1.5">
-                {mockData.skills.map((skill) => (
-                  <span key={skill} className="text-[7.5pt] bg-stone-100 text-stone-600 rounded px-2 py-0.5 border border-stone-200">
-                    {skill}
-                  </span>
-                ))}
-              </div>
+              )}
             </div>
           )}
+
+          {/* Sections */}
+          {mainSections.map((sec) => {
+            switch (sec.type) {
+              case "summary":
+                return summary ? (
+                  <div key={sec.id} className="mb-5">
+                    <SectionTitle>{sec.label}</SectionTitle>
+                    <p className="text-[8pt] text-stone-600 leading-relaxed">{summary}</p>
+                  </div>
+                ) : null;
+
+              case "experience":
+                return experience.length > 0 ? (
+                  <div key={sec.id} className="mb-5">
+                    <SectionTitle>{sec.label}</SectionTitle>
+                    <div className="space-y-4">
+                      {experience.map((exp) => (
+                        <div key={exp.id}>
+                          <div className="flex items-start justify-between mb-1">
+                            <div>
+                              <div className="font-semibold text-[9pt] text-stone-800">{exp.position}</div>
+                              <div className="text-[8pt] text-stone-500">{exp.company}{exp.location ? ` · ${exp.location}` : ""}</div>
+                            </div>
+                            {(exp.startDate || exp.endDate) && (
+                              <div className="text-[7.5pt] text-stone-400 whitespace-nowrap">
+                                {exp.startDate}{exp.endDate ? ` – ${exp.endDate}` : exp.current ? " – Présent" : ""}
+                              </div>
+                            )}
+                          </div>
+                          {exp.bullets.length > 0 ? (
+                            <ul className="space-y-0.5">
+                              {exp.bullets.map((b, j) => (
+                                <li key={j} className="flex items-start gap-1.5 text-[7.5pt] text-stone-600">
+                                  <span className="text-amber-500 mt-0.5">▸</span>{b}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : exp.description ? (
+                            <p className="text-[7.5pt] text-stone-600">{exp.description}</p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+
+              case "education":
+                return education.length > 0 ? (
+                  <div key={sec.id} className="mb-5">
+                    <SectionTitle>{sec.label}</SectionTitle>
+                    <div className="space-y-3">
+                      {education.map((edu) => (
+                        <div key={edu.id} className="flex items-start justify-between">
+                          <div>
+                            <div className="font-semibold text-[9pt] text-stone-800">{edu.degree}{edu.field ? ` — ${edu.field}` : ""}</div>
+                            <div className="text-[8pt] text-stone-500">{edu.institution}</div>
+                            {edu.description && <p className="text-[7.5pt] text-stone-500 mt-0.5">{edu.description}</p>}
+                          </div>
+                          {(edu.startDate || edu.endDate) && (
+                            <div className="text-[7.5pt] text-stone-400 whitespace-nowrap">{edu.startDate}{edu.endDate ? ` – ${edu.endDate}` : ""}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+
+              case "skills":
+                // Only render in main if not in sidebar
+                return !sidebarSections.some((s) => s.type === "skills") && skills.length > 0 ? (
+                  <div key={sec.id} className="mb-5">
+                    <SectionTitle>{sec.label}</SectionTitle>
+                    <div className="flex flex-wrap gap-1.5">
+                      {skills.map((s) => (
+                        <span key={s.id} className="text-[7.5pt] bg-stone-100 text-stone-600 rounded px-2 py-0.5 border border-stone-200">
+                          {s.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+
+              case "languages":
+                return !sidebarSections.some((s) => s.type === "languages") && languages.length > 0 ? (
+                  <div key={sec.id} className="mb-5">
+                    <SectionTitle>{sec.label}</SectionTitle>
+                    <div className="flex flex-wrap gap-3">
+                      {languages.map((l) => (
+                        <span key={l.id} className="text-[8pt] text-stone-600">
+                          {l.name}{l.level ? ` (${l.level})` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+
+              case "certifications":
+                return !sidebarSections.some((s) => s.type === "certifications") && certifications.length > 0 ? (
+                  <div key={sec.id} className="mb-5">
+                    <SectionTitle>{sec.label}</SectionTitle>
+                    <div className="space-y-2">
+                      {certifications.map((c) => (
+                        <div key={c.id}>
+                          <div className="font-semibold text-[9pt] text-stone-800">{c.name}</div>
+                          <div className="text-[7.5pt] text-stone-500">{[c.issuer, c.date].filter(Boolean).join(" · ")}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+
+              case "projects":
+                return projects.length > 0 ? (
+                  <div key={sec.id} className="mb-5">
+                    <SectionTitle>{sec.label}</SectionTitle>
+                    <div className="space-y-3">
+                      {projects.map((p) => (
+                        <div key={p.id}>
+                          <div className="font-semibold text-[9pt] text-stone-800">{p.name}</div>
+                          {p.description && <p className="text-[7.5pt] text-stone-600">{p.description}</p>}
+                          {p.technologies.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {p.technologies.map((t, i) => (
+                                <span key={i} className="text-[6.5pt] bg-amber-50 text-amber-700 rounded px-1.5 py-0.5">{t}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+
+              case "hobbies":
+                return !sidebarSections.some((s) => s.type === "hobbies") && hobbies.length > 0 ? (
+                  <div key={sec.id} className="mb-5">
+                    <SectionTitle>{sec.label}</SectionTitle>
+                    <p className="text-[8pt] text-stone-600">{hobbies.join(" · ")}</p>
+                  </div>
+                ) : null;
+
+              default:
+                return null;
+            }
+          })}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[7pt] uppercase tracking-widest text-amber-600 font-semibold mb-2 border-b border-amber-200 pb-1">
+      {children}
     </div>
   );
 }

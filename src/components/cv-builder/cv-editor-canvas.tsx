@@ -1,146 +1,311 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useCVEditorStore } from "@/store/cv-editor-store";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Save, Download, Eye, Undo2, Redo2, Sparkles, 
-  Layout, PanelLeft, PanelRight, PanelLeftClose,
-  Settings, Share2, ChevronLeft, Zap
-} from "lucide-react";
-import Link from "next/link";
+
 import { CVPreviewPanel } from "./cv-preview-panel";
 import { CVSidebarEditor } from "./cv-sidebar-editor";
 import { CVHeaderEditor } from "./cv-header-editor";
 import { CVSectionsEditor } from "./cv-sections-editor";
 import { AIAssistantPanel } from "./ai-assistant-panel";
 
+import {
+  Save, Download, Undo2, Redo2, Eye, ZoomIn, ZoomOut,
+  MessageSquare, X, Loader2, LayoutTemplate, Type, Layers,
+  ChevronLeft, FileText, CheckCircle2
+} from "lucide-react";
+import Link from "next/link";
+
 interface CVEditorCanvasProps {
   cvId: string;
 }
 
 export function CVEditorCanvas({ cvId }: CVEditorCanvasProps) {
-  const [showSidebar, setShowSidebar] = useState(true);
-  const [sidebarPosition, setSidebarPosition] = useState<"left" | "right">("left");
-  const [showAIPanel, setShowAIPanel] = useState(true);
-  const [activePanel, setActivePanel] = useState("layout");
-  const [atsScore] = useState(87);
+  const store = useCVEditorStore();
+  const {
+    cvTitle, isLoading, isSaving, isDirty, atsScore,
+    activePanel, setActivePanel, showAIPanel, setShowAIPanel,
+    initFromAPI, setLoading, setSaving, setDirty,
+    previewScale, data
+  } = store;
+
+  const [zoom, setZoom] = useState(0.65);
+  const hasInitRef = useRef(false);
+
+  // ─── Fetch CV data on mount ───────────────────────────────────────────────
+  useEffect(() => {
+    if (hasInitRef.current) return;
+    hasInitRef.current = true;
+
+    const fetchCV = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/cvs/${cvId}`);
+        const json = await res.json();
+        if (json.success) {
+          initFromAPI(json.data);
+        } else {
+          toast.error("Impossible de charger le CV");
+        }
+      } catch {
+        toast.error("Erreur de connexion");
+      }
+    };
+
+    fetchCV();
+  }, [cvId, initFromAPI, setLoading]);
+
+  // ─── Save handler ─────────────────────────────────────────────────────────
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    try {
+      const serializedData = store.getSerializableData();
+      const res = await fetch(`/api/cvs/${cvId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(serializedData),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setDirty(false);
+        toast.success("CV sauvegardé !");
+      } else {
+        toast.error(json.error ?? "Erreur de sauvegarde");
+      }
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
+      setSaving(false);
+    }
+  }, [cvId, setSaving, setDirty, store]);
+
+  // ─── Auto-save every 30 seconds if dirty ──────────────────────────────────
+  useEffect(() => {
+    if (!isDirty) return;
+    const timer = setTimeout(() => {
+      handleSave();
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, [isDirty, handleSave]);
+
+  // ─── Keyboard shortcut Ctrl+S ─────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleSave]);
+
+  // ─── Export handler ───────────────────────────────────────────────────────
+  const handleExport = useCallback(async () => {
+    try {
+      // First, save current state
+      if (isDirty) await handleSave();
+
+      const res = await fetch(`/api/cvs/${cvId}/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format: "json" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        const blob = new Blob([JSON.stringify(json.data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${cvTitle || "cv"}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("CV exporté !");
+      }
+    } catch {
+      toast.error("Erreur d'export");
+    }
+  }, [cvId, cvTitle, isDirty, handleSave]);
+
+  // ─── Tab definitions ──────────────────────────────────────────────────────
+  const TABS = [
+    { id: "layout", label: "Mise en page", icon: LayoutTemplate },
+    { id: "header", label: "En-tête", icon: Type },
+    { id: "sections", label: "Sections", icon: Layers },
+  ];
+
+  // ─── Loading state ────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+        <div className="flex flex-col items-center gap-3 text-stone-400">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <p className="text-sm">Chargement du CV...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const fullName = [data.personalInfo.firstName, data.personalInfo.lastName].filter(Boolean).join(" ");
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex items-center border-b border-border bg-card px-4 py-2.5 gap-3 flex-shrink-0">
-        <Button variant="ghost" size="icon" className="w-8 h-8" asChild>
-          <Link href="/dashboard/cv-builder">
-            <ChevronLeft className="w-4 h-4" />
+    <div className="flex flex-col h-[calc(100vh-80px)]">
+      {/* ─── Top Toolbar ──────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950">
+        {/* Left: Back + title */}
+        <div className="flex items-center gap-3">
+          <Link href="/cv-builder" className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded">
+            <ChevronLeft className="h-4 w-4 text-stone-400" />
           </Link>
-        </Button>
-
-        <div className="h-5 w-px bg-border" />
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">CV Senior Developer</span>
-          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">
-            Enregistré
-          </Badge>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* ATS Score */}
-        <div className="hidden md:flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5">
-          <Zap className="w-3.5 h-3.5 text-amber-400" />
-          <span className="text-xs font-medium">ATS:</span>
-          <span className={`text-xs font-bold ${atsScore >= 85 ? "text-emerald-400" : "text-amber-400"}`}>
-            {atsScore}/100
-          </span>
-          <div className="w-16 h-1.5 bg-border rounded-full overflow-hidden">
-            <div 
-              className={`h-full rounded-full ${atsScore >= 85 ? "bg-emerald-500" : "bg-amber-500"}`}
-              style={{ width: `${atsScore}%` }}
-            />
+          <div>
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-amber-500" />
+              <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">
+                {cvTitle || "Sans titre"}
+              </span>
+              {isDirty && (
+                <Badge variant="outline" className="text-[9px] px-1 text-amber-600 border-amber-300">
+                  Non sauvé
+                </Badge>
+              )}
+            </div>
+            {fullName && (
+              <p className="text-[10px] text-stone-400 ml-6">{fullName}</p>
+            )}
           </div>
         </div>
 
-        <div className="h-5 w-px bg-border" />
-
-        {/* Actions */}
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="w-8 h-8" title="Annuler">
-            <Undo2 className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="w-8 h-8" title="Refaire">
-            <Redo2 className="w-4 h-4" />
-          </Button>
+        {/* Center: ATS score */}
+        <div className="flex items-center gap-3">
+          {atsScore !== null && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800">
+              <CheckCircle2 className={cn(
+                "h-3 w-3",
+                atsScore >= 80 ? "text-emerald-500" : atsScore >= 60 ? "text-amber-500" : "text-red-500"
+              )} />
+              <span className="text-xs font-medium">ATS {atsScore}%</span>
+            </div>
+          )}
         </div>
 
-        <div className="h-5 w-px bg-border" />
+        {/* Right: Actions */}
+        <div className="flex items-center gap-1.5">
+          {/* Zoom controls */}
+          <div className="flex items-center gap-1 border-r border-stone-200 dark:border-stone-700 pr-2 mr-1">
+            <button
+              onClick={() => setZoom(Math.max(0.3, zoom - 0.1))}
+              className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded"
+            >
+              <ZoomOut className="h-3.5 w-3.5 text-stone-400" />
+            </button>
+            <span className="text-[10px] text-stone-400 w-8 text-center">{Math.round(zoom * 100)}%</span>
+            <button
+              onClick={() => setZoom(Math.min(1.5, zoom + 0.1))}
+              className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded"
+            >
+              <ZoomIn className="h-3.5 w-3.5 text-stone-400" />
+            </button>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 border-border/60 text-xs">
-            <Eye className="w-3.5 h-3.5" />
-            Aperçu
+          {/* AI Panel toggle */}
+          <Button
+            variant={showAIPanel ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setShowAIPanel(!showAIPanel)}
+            className={cn("h-7 px-2 text-xs", showAIPanel && "bg-amber-500 hover:bg-amber-600")}
+          >
+            <MessageSquare className="h-3.5 w-3.5 mr-1" />
+            IA
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 border-border/60 text-xs">
-            <Download className="w-3.5 h-3.5" />
-            Exporter
+
+          {/* Export */}
+          <Button variant="ghost" size="sm" onClick={handleExport} className="h-7 px-2 text-xs">
+            <Download className="h-3.5 w-3.5 mr-1" /> Exporter
           </Button>
-          <Button size="sm" className="btn-gradient gap-1.5 font-medium text-xs">
-            <Save className="w-3.5 h-3.5" />
-            Enregistrer
+
+          {/* Save */}
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || !isDirty}
+            size="sm"
+            className="h-7 px-3 text-xs bg-amber-500 hover:bg-amber-600 text-white"
+          >
+            {isSaving ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+            ) : (
+              <Save className="h-3.5 w-3.5 mr-1" />
+            )}
+            {isSaving ? "Enregistrement..." : "Sauvegarder"}
           </Button>
         </div>
       </div>
 
-      {/* Main editor area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left panel — controls */}
-        <div className="w-72 flex-shrink-0 border-r border-border bg-card flex flex-col overflow-hidden">
-          <Tabs value={activePanel} onValueChange={setActivePanel} className="flex flex-col h-full">
-            <TabsList className="w-full rounded-none border-b border-border bg-transparent px-2 pt-2 pb-0 gap-1 justify-start h-auto">
-              <TabsTrigger value="layout" className="text-xs px-2.5 py-1.5 rounded-t-lg rounded-b-none data-[state=active]:border-b-0 data-[state=active]:bg-background">
-                <Layout className="w-3.5 h-3.5 mr-1.5" />
-                Mise en page
-              </TabsTrigger>
-              <TabsTrigger value="header" className="text-xs px-2.5 py-1.5 rounded-t-lg rounded-b-none">
-                En-tête
-              </TabsTrigger>
-              <TabsTrigger value="sections" className="text-xs px-2.5 py-1.5 rounded-t-lg rounded-b-none">
-                Sections
-              </TabsTrigger>
-            </TabsList>
+      {/* ─── Main Layout: Editor + Preview + AI ───────────────────────────── */}
+      <div className="flex flex-1 min-h-0">
+        {/* ─── Left Panel: Editor Tabs ───────────────────────────────────── */}
+        <div className="w-[300px] border-r border-stone-200 dark:border-stone-800 flex flex-col bg-white dark:bg-stone-950">
+          {/* Tab bar */}
+          <div className="flex border-b border-stone-200 dark:border-stone-800">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActivePanel(tab.id)}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1 px-2 py-2 text-xs font-medium transition-colors border-b-2",
+                    activePanel === tab.id
+                      ? "border-amber-500 text-amber-600 dark:text-amber-400"
+                      : "border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300"
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
-            <ScrollArea className="flex-1">
-              <TabsContent value="layout" className="mt-0 p-4 space-y-4">
-                <CVSidebarEditor
-                  showSidebar={showSidebar}
-                  setShowSidebar={setShowSidebar}
-                  sidebarPosition={sidebarPosition}
-                  setSidebarPosition={setSidebarPosition}
-                />
-              </TabsContent>
-              <TabsContent value="header" className="mt-0 p-4">
-                <CVHeaderEditor />
-              </TabsContent>
-              <TabsContent value="sections" className="mt-0 p-4">
-                <CVSectionsEditor />
-              </TabsContent>
-            </ScrollArea>
-          </Tabs>
+          {/* Tab content */}
+          <div className="flex-1 overflow-y-auto">
+            {activePanel === "layout" && <CVSidebarEditor />}
+            {activePanel === "header" && <CVHeaderEditor />}
+            {activePanel === "sections" && <CVSectionsEditor />}
+          </div>
         </div>
 
-        {/* CV Preview */}
-        <div className="flex-1 overflow-auto bg-muted/30 flex items-start justify-center p-8">
-          <CVPreviewPanel showSidebar={showSidebar} sidebarPosition={sidebarPosition} />
+        {/* ─── Center: Preview ───────────────────────────────────────────── */}
+        <div className="flex-1 bg-stone-100 dark:bg-stone-900 overflow-auto flex items-start justify-center py-8 px-4">
+          <div
+            style={{
+              transform: `scale(${zoom})`,
+              transformOrigin: "top center",
+            }}
+          >
+            <CVPreviewPanel />
+          </div>
         </div>
 
-        {/* Right panel — AI Assistant */}
+        {/* ─── Right Panel: AI Assistant ──────────────────────────────────── */}
         {showAIPanel && (
-          <div className="w-72 flex-shrink-0 border-l border-border bg-card">
-            <AIAssistantPanel />
+          <div className="w-[320px] border-l border-stone-200 dark:border-stone-800 flex flex-col bg-white dark:bg-stone-950">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-stone-200 dark:border-stone-800">
+              <div className="flex items-center gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-xs font-semibold text-stone-700 dark:text-stone-300">Assistant IA</span>
+              </div>
+              <button onClick={() => setShowAIPanel(false)} className="p-0.5 hover:bg-stone-100 dark:hover:bg-stone-800 rounded">
+                <X className="h-3.5 w-3.5 text-stone-400" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <AIAssistantPanel cvId={cvId} />
+            </div>
           </div>
         )}
       </div>
