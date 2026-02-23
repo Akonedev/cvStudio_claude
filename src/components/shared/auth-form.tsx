@@ -2,28 +2,73 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sparkles, Eye, EyeOff, ArrowRight, Github, Mail } from "lucide-react";
+import { Sparkles, Eye, EyeOff, ArrowRight, Github, Mail, AlertCircle } from "lucide-react";
 
 interface AuthFormProps {
   mode: "login" | "signup";
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const isLogin = mode === "login";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 1500);
+    setError(null);
+
+    try {
+      if (!isLogin) {
+        // ── Register ────────────────────────────────────────────────────────
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ firstName, lastName, email, password }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          setError(json.error ?? "Erreur lors de l'inscription");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // ── Sign in (login or post-register) ──────────────────────────────────
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Email ou mot de passe incorrect");
+        setIsLoading(false);
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setError("Une erreur inattendue est survenue");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -58,7 +103,12 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         {/* Social auth */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <Button variant="outline" className="border-border/60 gap-2 text-sm">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-border/60 gap-2 text-sm"
+            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+          >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -67,7 +117,12 @@ export function AuthForm({ mode }: AuthFormProps) {
             </svg>
             Google
           </Button>
-          <Button variant="outline" className="border-border/60 gap-2 text-sm">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-border/60 gap-2 text-sm"
+            onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
+          >
             <Github className="w-4 h-4" />
             GitHub
           </Button>
@@ -85,11 +140,23 @@ export function AuthForm({ mode }: AuthFormProps) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Prénom</Label>
-                <Input placeholder="Jean" className="bg-background border-border/60" />
+                <Input
+                  placeholder="Jean"
+                  className="bg-background border-border/60"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Nom</Label>
-                <Input placeholder="Dupont" className="bg-background border-border/60" />
+                <Input
+                  placeholder="Dupont"
+                  className="bg-background border-border/60"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
               </div>
             </div>
           )}
@@ -102,6 +169,8 @@ export function AuthForm({ mode }: AuthFormProps) {
                 type="email"
                 placeholder="jean@example.com"
                 className="pl-9 bg-background border-border/60"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -121,7 +190,10 @@ export function AuthForm({ mode }: AuthFormProps) {
                 type={showPassword ? "text" : "password"}
                 placeholder={isLogin ? "Votre mot de passe" : "Min. 8 caractères"}
                 className="pr-10 bg-background border-border/60"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={8}
               />
               <button
                 type="button"
@@ -135,13 +207,20 @@ export function AuthForm({ mode }: AuthFormProps) {
 
           {!isLogin && (
             <div className="flex items-start gap-2">
-              <Checkbox id="terms" className="mt-0.5" />
+              <Checkbox id="terms" className="mt-0.5" required />
               <label htmlFor="terms" className="text-xs text-muted-foreground cursor-pointer">
                 J'accepte les{" "}
                 <Link href="/terms" className="text-amber-400 hover:underline">CGU</Link>
                 {" "}et la{" "}
                 <Link href="/privacy" className="text-amber-400 hover:underline">Politique de confidentialité</Link>
               </label>
+            </div>
+          )}
+
+          {error && (
+            <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
