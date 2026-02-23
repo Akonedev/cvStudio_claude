@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   FileText, Plus, Star, MoreVertical, 
-  Download, Copy, Trash2, Edit, Eye
+  Download, Copy, Trash2, Edit, Eye, Upload
 } from "lucide-react";
+import { ImportCVDialog } from "./import-cv-dialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger
@@ -29,6 +30,7 @@ interface CV {
 export function CVList() {
   const [cvs, setCVs] = useState<CV[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importOpen, setImportOpen] = useState(false);
 
   const loadCVs = () => {
     fetch("/api/cvs")
@@ -65,18 +67,37 @@ export function CVList() {
 
   return (
     <div className="space-y-6">
-      {/* Create new */}
-      <Link href="/dashboard/cv-builder/new">
-        <div className="card-premium border-2 border-dashed border-border/60 hover:border-amber-500/40 p-8 flex flex-col items-center justify-center gap-3 cursor-pointer group transition-all min-h-[140px]">
-          <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
-            <Plus className="w-6 h-6 text-amber-400" />
+      <ImportCVDialog open={importOpen} onOpenChange={setImportOpen} />
+
+      {/* Action cards row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Create new */}
+        <Link href="/dashboard/cv-builder/new">
+          <div className="card-premium border-2 border-dashed border-border/60 hover:border-amber-500/40 p-8 flex flex-col items-center justify-center gap-3 cursor-pointer group transition-all min-h-[140px]">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+              <Plus className="w-6 h-6 text-amber-400" />
+            </div>
+            <div className="text-center">
+              <div className="font-medium text-sm">Créer un nouveau CV</div>
+              <div className="text-xs text-muted-foreground">Démarrez depuis un template premium</div>
+            </div>
+          </div>
+        </Link>
+
+        {/* Import existing */}
+        <div
+          className="card-premium border-2 border-dashed border-border/60 hover:border-teal-500/40 p-8 flex flex-col items-center justify-center gap-3 cursor-pointer group transition-all min-h-[140px]"
+          onClick={() => setImportOpen(true)}
+        >
+          <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center group-hover:bg-teal-500/20 transition-colors">
+            <Upload className="w-6 h-6 text-teal-400" />
           </div>
           <div className="text-center">
-            <div className="font-medium text-sm">Créer un nouveau CV</div>
-            <div className="text-xs text-muted-foreground">Démarrez depuis un template premium</div>
+            <div className="font-medium text-sm">Importer un CV existant</div>
+            <div className="text-xs text-muted-foreground">JSON, texte · style conservé</div>
           </div>
         </div>
-      </Link>
+      </div>
 
       {/* Loading skeleton */}
       {loading && (
