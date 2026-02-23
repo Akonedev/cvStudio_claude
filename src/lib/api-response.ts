@@ -16,7 +16,8 @@ export interface ApiError {
 }
 
 type Session = { user: { id: string; email?: string | null; role?: string } };
-type RouteContext = { params?: Promise<Record<string, string>> };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RouteContext = { params: Promise<any> };
 type AuthHandler = (req: NextRequest, session: Session, ctx: RouteContext) => Promise<NextResponse>;
 
 // ─── Response helpers ────────────────────────────────────────────────────────

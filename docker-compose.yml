@@ -27,7 +27,6 @@ volumes:
   cvStudio_Claude_postgres_data:
   cvStudio_Claude_pgadmin_data:
   cvStudio_Claude_redis_data:
-  cvStudio_Claude_app_node_modules:
 
 services:
 
@@ -137,8 +136,6 @@ services:
         condition: service_healthy
       cvStudio_Claude_redis:
         condition: service_healthy
-    volumes:
-      - cvStudio_Claude_app_node_modules:/app/node_modules
 
   # ─── Nginx Reverse Proxy ────────────────────────────────────────────────────
   cvStudio_Claude_nginx:

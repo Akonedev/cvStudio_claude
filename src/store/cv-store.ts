@@ -49,10 +49,10 @@ export interface CV {
   status: string;
   atsScore: number | null;
   isActive: boolean;
-  sidebarEnabled: boolean;
-  sidebarPosition: string;
-  sidebarStyle?: string;
-  headerTemplate?: string;
+  hasSidebar: boolean;
+  sidebarPos: string;
+  sidebarTheme?: string;
+  headerStyle?: string;
   data: CVData;
   createdAt: string;
   updatedAt: string;

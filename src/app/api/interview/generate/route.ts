@@ -56,18 +56,50 @@ Retourne un JSON avec:
   const jsonMatch = response.content.match(/\{[\s\S]*\}/);
   const result = jsonMatch ? JSON.parse(jsonMatch[0]) : { questions: [], preparationAdvice: [] };
 
-  // Save interview prep session
+  // Category mapping: AI may return categories not in the schema enum
+  const categoryMap: Record<string, "BEHAVIORAL" | "TECHNICAL" | "LEADERSHIP" | "SITUATIONAL" | "CULTURE_FIT" | "SALARY"> = {
+    BEHAVIORAL: "BEHAVIORAL",
+    TECHNICAL: "TECHNICAL",
+    LEADERSHIP: "LEADERSHIP",
+    SITUATIONAL: "SITUATIONAL",
+    CULTURE_FIT: "CULTURE_FIT",
+    SALARY: "SALARY",
+    MOTIVATIONAL: "BEHAVIORAL",
+    COMPETENCY: "TECHNICAL",
+  };
+
+  const difficultyMap: Record<string, "EASY" | "MEDIUM" | "HARD"> = {
+    EASY: "EASY", MEDIUM: "MEDIUM", HARD: "HARD",
+  };
+
+  // Save interview prep session with nested questions
+  const questions = (result.questions || []) as Array<{
+    category?: string; difficulty?: string; question?: string;
+    tips?: string[]; modelAnswer?: string; order?: number;
+  }>;
+
   const prep = await prisma.interviewPrep.create({
     data: {
       userId: session.user.id,
       cvId: cv.id,
       jobOfferId: jobOffer.id,
-      questions: result.questions || [],
-      preparationScore: 0,
+      title: `${jobOffer.title} - ${new Date().toLocaleDateString("fr-FR")}`,
+      status: "DRAFT",
+      questions: {
+        create: questions.map((q, i) => ({
+          question: q.question || "",
+          category: categoryMap[q.category?.toUpperCase() ?? ""] ?? "BEHAVIORAL",
+          difficulty: difficultyMap[q.difficulty?.toUpperCase() ?? ""] ?? "MEDIUM",
+          tips: q.tips ?? [],
+          modelAnswer: q.modelAnswer,
+          order: i,
+        })),
+      },
     },
+    include: { questions: true },
   });
 
-  await logHistory(session.user.id, "GENERATE", "INTERVIEW", prep.id, { cvId: cv.id, jobOfferId: jobOffer.id });
+  await logHistory(session.user.id, "GENERATE", "INTERVIEW_PREP", prep.id, { cvId: cv.id, jobOfferId: jobOffer.id });
 
   return ok({ prep, questions: result.questions, preparationAdvice: result.preparationAdvice, evaluation: result.evaluation });
 });

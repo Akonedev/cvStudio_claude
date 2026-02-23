@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const CreateProviderSchema = z.object({
   name: z.string().min(1).max(100),
-  type: z.enum(["OPENAI", "ANTHROPIC", "GOOGLE", "MISTRAL", "OLLAMA", "LMSTUDIO", "VLLM", "OPENROUTER", "DEEPSEEK", "CUSTOM"]),
+  type: z.enum(["OPENAI", "ANTHROPIC", "GOOGLE", "MISTRAL", "OLLAMA", "LMSTUDIO", "VLLM", "OPENROUTER", "DEEPSEEK", "MOONSHOT", "MINIMAX", "CUSTOM"]),
   baseUrl: z.string().url(),
   apiKey: z.string().optional(),
   isDefault: z.boolean().optional().default(false),

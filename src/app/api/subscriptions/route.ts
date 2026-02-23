@@ -18,7 +18,7 @@ export const GET = withAuth(async (_req: NextRequest, session) => {
     include: { invoices: { orderBy: { createdAt: "desc" }, take: 10 } },
   });
 
-  const plan = subscription?.plan ?? "STARTER";
+  const plan = subscription?.plan ?? "FREE";
   const limits = getPlanLimits(plan);
 
   return ok({ subscription, limits });
@@ -41,7 +41,7 @@ export const POST = withAuth(async (req: NextRequest, session) => {
   const priceId = priceMap[`${parsed.data.plan}:${parsed.data.interval}`];
   if (!priceId) return err("Plan invalide", 400);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:12450";
 
   const session2 = await stripe.checkout.sessions.create({
     mode: "subscription",

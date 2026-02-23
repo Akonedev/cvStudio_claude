@@ -7,12 +7,12 @@ import { logHistory } from "@/lib/history";
 const UpdateSchema = z.object({
   title: z.string().min(1).max(100).optional(),
   template: z.string().optional(),
-  status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).optional(),
-  data: z.record(z.unknown()).optional(),
-  sidebarEnabled: z.boolean().optional(),
-  sidebarPosition: z.enum(["LEFT", "RIGHT"]).optional(),
-  sidebarStyle: z.string().optional(),
-  headerTemplate: z.string().optional(),
+  status: z.enum(["DRAFT", "COMPLETE", "ARCHIVED"]).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
+  hasSidebar: z.boolean().optional(),
+  sidebarPos: z.enum(["LEFT", "RIGHT"]).optional(),
+  sidebarTheme: z.string().optional(),
+  headerStyle: z.string().optional(),
   atsScore: z.number().int().min(0).max(100).optional(),
 });
 
@@ -34,7 +34,8 @@ export const PATCH = withAuth(async (req: NextRequest, session, { params }: { pa
   const parsed = UpdateSchema.safeParse(body);
   if (!parsed.success) return err(parsed.error.message, 400);
 
-  const cv = await prisma.cV.update({ where: { id }, data: parsed.data });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cv = await prisma.cV.update({ where: { id }, data: parsed.data as any });
   await logHistory(session.user.id, "UPDATE", "CV", cv.id, { title: cv.title });
   return ok(cv);
 });

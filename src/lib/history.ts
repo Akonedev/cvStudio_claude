@@ -39,7 +39,8 @@ export async function logHistory(
     } else {
       data = optsOrUserId;
     }
-    await prisma.historyEntry.create({ data });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await prisma.historyEntry.create({ data: data as any });
   } catch (err) {
     // History logging must never crash the main request
     console.error("[history] Failed to log:", err);

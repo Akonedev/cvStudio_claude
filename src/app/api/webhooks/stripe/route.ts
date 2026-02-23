@@ -26,6 +26,8 @@ export const POST = async (req: NextRequest) => {
       if (!userId || !plan) break;
 
       const sub = await stripe.subscriptions.retrieve(session_.subscription as string);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subAny = sub as any;
       await prisma.subscription.upsert({
         where: { userId },
         create: {
@@ -35,8 +37,8 @@ export const POST = async (req: NextRequest) => {
           stripeSubscriptionId: sub.id,
           stripeCustomerId: sub.customer as string,
           stripePriceId: sub.items.data[0]?.price.id,
-          currentPeriodStart: new Date(sub.current_period_start * 1000),
-          currentPeriodEnd: new Date(sub.current_period_end * 1000),
+          currentPeriodStart: new Date(subAny.current_period_start * 1000),
+          currentPeriodEnd: new Date(subAny.current_period_end * 1000),
         },
         update: {
           plan,
@@ -44,8 +46,8 @@ export const POST = async (req: NextRequest) => {
           stripeSubscriptionId: sub.id,
           stripeCustomerId: sub.customer as string,
           stripePriceId: sub.items.data[0]?.price.id,
-          currentPeriodStart: new Date(sub.current_period_start * 1000),
-          currentPeriodEnd: new Date(sub.current_period_end * 1000),
+          currentPeriodStart: new Date(subAny.current_period_start * 1000),
+          currentPeriodEnd: new Date(subAny.current_period_end * 1000),
         },
       });
       break;
@@ -62,12 +64,14 @@ export const POST = async (req: NextRequest) => {
           userId: sub.userId,
           subscriptionId: sub.id,
           stripeInvoiceId: inv.id,
-          amount: inv.amount_paid / 100,
+          amount: inv.amount_paid,
           currency: inv.currency.toUpperCase(),
           status: "PAID",
-          invoiceUrl: inv.hosted_invoice_url ?? undefined,
           pdfUrl: inv.invoice_pdf ?? undefined,
-          period: `${new Date(inv.period_start * 1000).toLocaleDateString("fr-FR")} - ${new Date(inv.period_end * 1000).toLocaleDateString("fr-FR")}`,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          periodStart: new Date((inv as any).period_start * 1000),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          periodEnd: new Date((inv as any).period_end * 1000),
         },
       });
       break;
@@ -82,7 +86,8 @@ export const POST = async (req: NextRequest) => {
         where: { id: sub.id },
         data: {
           status: subscription_.status === "active" ? "ACTIVE" : subscription_.status === "trialing" ? "TRIALING" : "CANCELED",
-          currentPeriodEnd: new Date(subscription_.current_period_end * 1000),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          currentPeriodEnd: new Date((subscription_ as any).current_period_end * 1000),
         },
       });
       break;
@@ -92,7 +97,7 @@ export const POST = async (req: NextRequest) => {
       const customerId = subscription_.customer as string;
       await prisma.subscription.updateMany({
         where: { stripeCustomerId: customerId },
-        data: { status: "CANCELED", plan: "STARTER" },
+        data: { status: "CANCELED", plan: "FREE" },
       });
       break;
     }

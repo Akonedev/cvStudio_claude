@@ -19,7 +19,7 @@ export const GET = withAuth(async (_req: NextRequest, session) => {
   const offers = await prisma.jobOffer.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
-    include: { matches: { select: { id: true, matchScore: true, status: true } } },
+    include: { jobMatches: { select: { id: true, matchScore: true } } },
   });
   return ok(offers);
 });

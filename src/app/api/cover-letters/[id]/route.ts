@@ -7,7 +7,7 @@ import { logHistory } from "@/lib/history";
 const UpdateSchema = z.object({
   title: z.string().min(1).max(150).optional(),
   content: z.string().optional(),
-  status: z.enum(["DRAFT", "FINAL", "ARCHIVED"]).optional(),
+  status: z.enum(["DRAFT", "FINAL", "SENT"]).optional(),
 });
 
 export const GET = withAuth(async (_req: NextRequest, session, { params }: { params: Promise<{ id: string }> }) => {

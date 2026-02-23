@@ -8,8 +8,7 @@ import { logHistory } from "@/lib/history";
 const CreateCVSchema = z.object({
   title: z.string().min(1).max(100),
   template: z.string().optional().default("modern"),
-  data: z.record(z.unknown()).optional().default({}),
-});
+  data: z.record(z.string(), z.unknown()).optional().default({}),});
 
 export const GET = withAuth(async (req: NextRequest, session) => {
   const cvs = await prisma.cV.findMany({
@@ -22,8 +21,8 @@ export const GET = withAuth(async (req: NextRequest, session) => {
       status: true,
       atsScore: true,
       isActive: true,
-      sidebarEnabled: true,
-      sidebarPosition: true,
+      hasSidebar: true,
+      sidebarPos: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -41,7 +40,7 @@ export const POST = withAuth(async (req: NextRequest, session) => {
       userId: session.user.id,
       title: parsed.data.title,
       template: parsed.data.template,
-      data: parsed.data.data,
+      data: parsed.data.data as any,
     },
   });
 

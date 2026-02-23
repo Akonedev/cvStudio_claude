@@ -30,7 +30,7 @@ export const GET = withAdmin(async () => {
   ]);
 
   // Revenue estimate from active subscriptions
-  const planPrices: Record<string, number> = { STARTER: 0, PRO: 19, ELITE: 49 };
+  const planPrices: Record<string, number> = { FREE: 0, PRO: 19, ELITE: 49, ENTERPRISE: 99 };
   const revenue = subscriptions
     .filter((s) => s.status === "ACTIVE")
     .reduce((sum, s) => sum + planPrices[s.plan] * s._count, 0);

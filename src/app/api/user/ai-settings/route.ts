@@ -24,8 +24,8 @@ export async function GET() {
     if (!session?.user) return unauthorizedResponse();
 
     const settings = await prisma.userAISettings.upsert({
-      where: { userId: session.user.id },
-      create: { userId: session.user.id },
+      where: { userId: session.user.id! },
+      create: { userId: session.user.id! },
       update: {},
     });
 
@@ -45,8 +45,8 @@ export async function PATCH(req: NextRequest) {
     const data = settingsSchema.parse(body);
 
     const settings = await prisma.userAISettings.upsert({
-      where: { userId: session.user.id },
-      create: { userId: session.user.id, ...data },
+      where: { userId: session.user.id! },
+      create: { userId: session.user.id!, ...data },
       update: data,
     });
 

@@ -68,7 +68,7 @@ Analyse ce CV de manière exhaustive et retourne un JSON structuré avec:
   // Update ATS score in DB
   const score = typeof analysis.score === "number" ? analysis.score : 0;
   await prisma.cV.update({ where: { id }, data: { atsScore: score } });
-  await logHistory(session.user.id, "ATS_ANALYZE", "CV", id, { score });
+  await logHistory(session.user.id, "ANALYZE", "CV", id, { score });
 
   return ok({ analysis, score, cvId: id });
 });
