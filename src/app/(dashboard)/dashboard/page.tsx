@@ -1,3 +1,4 @@
+import { auth } from "@/lib/auth";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
@@ -5,12 +6,15 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { ActiveCVCard } from "@/components/dashboard/active-cv-card";
 import { SubscriptionBanner } from "@/components/dashboard/subscription-banner";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await auth();
+  const firstName = session?.user?.name?.split(" ")[0] ?? "vous";
+
   return (
     <>
       <DashboardHeader
         title="Tableau de bord"
-        subtitle="Bienvenue, Jean — Votre espace de recherche d'emploi"
+        subtitle={`Bienvenue, ${firstName} — Votre espace de recherche d'emploi`}
       />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         <SubscriptionBanner />

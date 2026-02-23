@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,16 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({ isAdmin = false }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { data: session } = useSession();
+
+  const userName = session?.user?.name ?? "Utilisateur";
+  const userEmail = session?.user?.email ?? "";
+  const initials = (session?.user?.name ?? "U")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w: string) => w[0].toUpperCase())
+    .join("");
 
   return (
     <motion.aside
@@ -104,22 +115,28 @@ export function DashboardSidebar({ isAdmin = false }: DashboardSidebarProps) {
         {!isCollapsed ? (
           <div className="flex items-center gap-3">
             <Avatar className="w-9 h-9 flex-shrink-0">
-              <AvatarFallback className="bg-amber-500/10 text-amber-400 text-sm font-semibold">JD</AvatarFallback>
+              <AvatarFallback className="bg-amber-500/10 text-amber-400 text-sm font-semibold">{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">Jean Dupont</div>
-              <div className="text-xs text-muted-foreground truncate">jean@example.com</div>
+              <div className="text-sm font-medium truncate">{userName}</div>
+              <div className="text-xs text-muted-foreground truncate">{userEmail}</div>
             </div>
             <div className="flex items-center gap-1">
               <ThemeToggle />
-              <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-8 h-8 text-muted-foreground hover:text-red-400"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                title="Se déconnecter"
+              >
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
           </div>
         ) : (
           <Avatar className="w-9 h-9">
-            <AvatarFallback className="bg-amber-500/10 text-amber-400 text-sm font-semibold">JD</AvatarFallback>
+            <AvatarFallback className="bg-amber-500/10 text-amber-400 text-sm font-semibold">{initials}</AvatarFallback>
           </Avatar>
         )}
       </div>

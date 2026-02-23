@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Bell, Search, Plus, Sparkles } from "lucide-react";
+import { Bell, Search, Plus } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -24,7 +26,38 @@ interface DashboardHeaderProps {
   };
 }
 
+function getInitials(name?: string | null): string {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
+}
+
 export function DashboardHeader({ title, subtitle, action }: DashboardHeaderProps) {
+  const { data: session } = useSession();
+  const userName = session?.user?.name ?? "Utilisateur";
+  const userEmail = session?.user?.email ?? "";
+  const initials = getInitials(session?.user?.name);
+
+  const actionButton = action ? (
+    action.href ? (
+      <Button size="sm" className="btn-gradient font-medium gap-1.5" asChild>
+        <Link href={action.href}>
+          <Plus className="w-3.5 h-3.5" />
+          {action.label}
+        </Link>
+      </Button>
+    ) : (
+      <Button size="sm" className="btn-gradient font-medium gap-1.5" onClick={action.onClick}>
+        <Plus className="w-3.5 h-3.5" />
+        {action.label}
+      </Button>
+    )
+  ) : null;
+
   return (
     <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center px-6 gap-4 flex-shrink-0">
       <div className="flex-1 min-w-0">
@@ -49,36 +82,44 @@ export function DashboardHeader({ title, subtitle, action }: DashboardHeaderProp
         </Button>
 
         {/* Action */}
-        {action && (
-          <Button size="sm" className="btn-gradient font-medium gap-1.5">
-            <Plus className="w-3.5 h-3.5" />
-            {action.label}
-          </Button>
-        )}
+        {actionButton}
 
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full">
               <Avatar className="w-8 h-8">
-                <AvatarFallback className="bg-amber-500/10 text-amber-400 text-xs font-semibold">JD</AvatarFallback>
+                <AvatarFallback className="bg-amber-500/10 text-amber-400 text-xs font-semibold">
+                  {initials}
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel className="font-normal">
-              <div className="text-sm font-medium">Jean Dupont</div>
-              <div className="text-xs text-muted-foreground">jean@example.com</div>
+              <div className="text-sm font-medium">{userName}</div>
+              <div className="text-xs text-muted-foreground">{userEmail}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profil</DropdownMenuItem>
-            <DropdownMenuItem>Paramètres</DropdownMenuItem>
-            <DropdownMenuItem>
-              Abonnement
-              <Badge className="ml-auto bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px]">Pro</Badge>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings">Profil</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings">Paramètres</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/subscription">
+                Abonnement
+                <Badge className="ml-auto bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px]">Pro</Badge>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-400">Se déconnecter</DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-red-400 focus:text-red-400"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              Se déconnecter
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

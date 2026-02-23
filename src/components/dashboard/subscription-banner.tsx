@@ -3,12 +3,19 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Crown, X, ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export function SubscriptionBanner() {
   const [dismissed, setDismissed] = useState(false);
-  const isPro = false; // would come from auth/subscription state
+  const [isPro, setIsPro] = useState(true); // optimistic default — hide until confirmed FREE
+
+  useEffect(() => {
+    fetch("/api/user/stats")
+      .then((r) => r.json())
+      .then((d) => setIsPro(d.data?.plan !== "FREE"))
+      .catch(() => {});
+  }, []);
 
   if (dismissed || isPro) return null;
 
