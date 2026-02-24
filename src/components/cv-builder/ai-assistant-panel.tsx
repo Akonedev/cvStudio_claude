@@ -97,27 +97,27 @@ export function AIAssistantPanel({ cvId }: AIAssistantPanelProps) {
               <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-2">
                 <Sparkles className="h-5 w-5 text-amber-500" />
               </div>
-              <h4 className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+              <h4 className="text-xs font-semibold text-foreground">
                 Assistant CV IA
               </h4>
-              <p className="text-[10px] text-stone-400 mt-1">
+              <p className="text-[10px] text-muted-foreground mt-1">
                 Je peux vous aider à améliorer, corriger et optimiser votre CV.
               </p>
             </div>
 
             {/* Quick actions */}
             <div className="space-y-1.5">
-              <span className="text-[10px] font-medium text-stone-400 uppercase">Actions rapides</span>
+              <span className="text-[10px] font-medium text-muted-foreground uppercase">Actions rapides</span>
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
                 return (
                   <button
                     key={action.label}
                     onClick={() => handleQuickAction(action.prompt)}
-                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md border border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors text-left"
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md border border-border hover:bg-muted transition-colors text-left"
                   >
                     <Icon className={cn("h-3.5 w-3.5 flex-shrink-0", action.color)} />
-                    <span className="text-xs text-stone-600 dark:text-stone-400">{action.label}</span>
+                    <span className="text-xs text-muted-foreground">{action.label}</span>
                   </button>
                 );
               })}
@@ -143,13 +143,13 @@ export function AIAssistantPanel({ cvId }: AIAssistantPanelProps) {
                     "max-w-[85%] rounded-lg px-3 py-2 text-xs leading-relaxed",
                     msg.role === "user"
                       ? "bg-amber-500 text-white rounded-br-none"
-                      : "bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-bl-none"
+                      : "bg-muted text-foreground rounded-bl-none"
                   )}
                 >
                   <div className="whitespace-pre-wrap">{msg.content}</div>
                   <div className={cn(
                     "text-[9px] mt-1 flex items-center gap-1",
-                    msg.role === "user" ? "text-amber-200" : "text-stone-400"
+                    msg.role === "user" ? "text-amber-200" : "text-muted-foreground"
                   )}>
                     {msg.role === "assistant" && msg.agent && (
                       <span className="font-medium">{msg.agent} ·</span>
@@ -158,8 +158,8 @@ export function AIAssistantPanel({ cvId }: AIAssistantPanelProps) {
                   </div>
                 </div>
                 {msg.role === "user" && (
-                  <div className="w-6 h-6 rounded-full bg-stone-200 dark:bg-stone-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <User className="h-3 w-3 text-stone-500" />
+                  <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <User className="h-3 w-3 text-muted-foreground" />
                   </div>
                 )}
               </div>
@@ -170,10 +170,10 @@ export function AIAssistantPanel({ cvId }: AIAssistantPanelProps) {
                 <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
                   <Bot className="h-3 w-3 text-amber-600" />
                 </div>
-                <div className="bg-stone-100 dark:bg-stone-800 rounded-lg px-3 py-2 text-xs">
+                <div className="bg-muted rounded-lg px-3 py-2 text-xs">
                   <div className="flex items-center gap-1.5">
                     <Loader2 className="h-3 w-3 animate-spin text-amber-500" />
-                    <span className="text-stone-400">Réflexion en cours...</span>
+                    <span className="text-muted-foreground">Réflexion en cours...</span>
                   </div>
                 </div>
               </div>
@@ -192,10 +192,10 @@ export function AIAssistantPanel({ cvId }: AIAssistantPanelProps) {
 
       {/* ─── Clear history ───────────────────────────────────────────────── */}
       {messages.length > 0 && (
-        <div className="px-3 py-1 border-t border-stone-100 dark:border-stone-800">
+        <div className="px-3 py-1 border-t border-border">
           <button
             onClick={clearHistory}
-            className="flex items-center gap-1 text-[10px] text-stone-400 hover:text-stone-600 transition-colors"
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
           >
             <Trash2 className="h-2.5 w-2.5" />
             Effacer l&apos;historique
@@ -204,7 +204,7 @@ export function AIAssistantPanel({ cvId }: AIAssistantPanelProps) {
       )}
 
       {/* ─── Input area ──────────────────────────────────────────────────── */}
-      <div className="p-3 border-t border-stone-200 dark:border-stone-800">
+      <div className="p-3 border-t border-border">
         <div className="flex gap-1.5">
           <textarea
             ref={inputRef}
@@ -213,7 +213,7 @@ export function AIAssistantPanel({ cvId }: AIAssistantPanelProps) {
             onKeyDown={handleKeyDown}
             placeholder="Posez une question sur votre CV..."
             rows={1}
-            className="flex-1 rounded-md border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-2.5 py-1.5 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 min-h-[32px] max-h-[80px]"
+            className="flex-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 min-h-[32px] max-h-[80px]"
             style={{ height: "auto", overflow: "hidden" }}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;

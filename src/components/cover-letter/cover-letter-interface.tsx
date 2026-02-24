@@ -206,7 +206,7 @@ export function CoverLetterInterface() {
                   </div>
 
                   {/* Letter */}
-                  <div className="card-premium p-8 bg-white dark:bg-card">
+                  <div className="card-premium p-8 bg-card">
                     {isEditing ? (
                       <Textarea
                         value={editedLetter}

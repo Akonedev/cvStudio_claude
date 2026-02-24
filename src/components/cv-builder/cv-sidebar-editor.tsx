@@ -54,11 +54,11 @@ export function CVSidebarEditor() {
     <div className="space-y-5 p-4 text-sm overflow-y-auto max-h-[calc(100vh-200px)]">
       {/* ─── Template Selection ──────────────────────────────────────────── */}
       <section>
-        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-2 flex items-center gap-2">
+        <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
           <LayoutTemplate className="h-4 w-4" />
           Modèle de CV
         </h3>
-        <p className="text-xs text-stone-500 mb-3">
+        <p className="text-xs text-muted-foreground mb-3">
           Sélectionnez un modèle. Les paramètres s&apos;adaptent automatiquement.
         </p>
 
@@ -72,7 +72,7 @@ export function CVSidebarEditor() {
                 "px-2 py-0.5 rounded-full text-xs font-medium transition-colors",
                 activeCategory === cat.id
                   ? "bg-amber-500 text-white"
-                  : "bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-400"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
             >
               {cat.label}
@@ -101,7 +101,7 @@ export function CVSidebarEditor() {
                 "relative rounded-lg border-2 p-2 transition-all text-left",
                 template === t.id
                   ? "border-amber-500 ring-2 ring-amber-200 dark:ring-amber-800"
-                  : "border-stone-200 dark:border-stone-700 hover:border-stone-300"
+                  : "border-border hover:border-border/80"
               )}
             >
               {/* Template preview thumbnail */}
@@ -116,14 +116,14 @@ export function CVSidebarEditor() {
                   />
                 )}
                 <div className="flex-1 p-1">
-                  <div className="h-1 w-3/4 rounded-full bg-stone-300/40 mb-0.5" />
-                  <div className="h-0.5 w-1/2 rounded-full bg-stone-300/30" />
+                  <div className="h-1 w-3/4 rounded-full bg-muted-foreground/20 mb-0.5" />
+                  <div className="h-0.5 w-1/2 rounded-full bg-muted-foreground/15" />
                 </div>
               </div>
-              <div className="text-xs font-medium text-stone-700 dark:text-stone-300 truncate">
+              <div className="text-xs font-medium text-foreground truncate">
                 {t.name}
               </div>
-              <div className="text-[10px] text-stone-400 truncate">{t.description}</div>
+              <div className="text-[10px] text-muted-foreground truncate">{t.description}</div>
               {template === t.id && (
                 <div className="absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
                   <Check className="h-2.5 w-2.5 text-white" />
@@ -138,7 +138,7 @@ export function CVSidebarEditor() {
 
       {/* ─── Sidebar Toggle ──────────────────────────────────────────────── */}
       <section>
-        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-3 flex items-center gap-2">
+        <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
           <Columns3 className="h-4 w-4" />
           Sidebar
         </h3>
@@ -166,7 +166,7 @@ export function CVSidebarEditor() {
                       "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors",
                       sidebarConfig.position === "left"
                         ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-400"
-                        : "border-stone-200 text-stone-500 dark:border-stone-700"
+                        : "border-border text-muted-foreground"
                     )}
                   >
                     <PanelLeft className="h-3.5 w-3.5" /> Gauche
@@ -177,7 +177,7 @@ export function CVSidebarEditor() {
                       "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors",
                       sidebarConfig.position === "right"
                         ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-400"
-                        : "border-stone-200 text-stone-500 dark:border-stone-700"
+                        : "border-border text-muted-foreground"
                     )}
                   >
                     <PanelRight className="h-3.5 w-3.5" /> Droite
@@ -188,7 +188,7 @@ export function CVSidebarEditor() {
               {/* Full height */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <Maximize2 className="h-3 w-3 text-stone-400" />
+                  <Maximize2 className="h-3 w-3 text-muted-foreground" />
                   <Label htmlFor="full-height" className="text-xs">Pleine hauteur</Label>
                 </div>
                 <Switch
@@ -210,7 +210,7 @@ export function CVSidebarEditor() {
                         "flex-1 px-2 py-1 rounded text-xs font-medium border transition-colors",
                         sidebarConfig.width === w.id
                           ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30"
-                          : "border-stone-200 text-stone-500 dark:border-stone-700"
+                          : "border-border text-muted-foreground"
                       )}
                     >
                       {w.label}
@@ -234,7 +234,7 @@ export function CVSidebarEditor() {
                         "w-full aspect-square rounded-md border-2 transition-all relative",
                         sidebarConfig.theme === t.id
                           ? "border-amber-500 ring-1 ring-amber-300"
-                          : "border-transparent hover:border-stone-300"
+                          : "border-transparent hover:border-border"
                       )}
                       style={{ backgroundColor: t.color }}
                     >
@@ -271,7 +271,7 @@ export function CVSidebarEditor() {
                 <div className="space-y-2">
                   {SIDEBAR_ELEMENTS.map((el) => (
                     <div key={el.id} className="flex items-center justify-between">
-                      <span className="text-xs text-stone-600 dark:text-stone-400">{el.label}</span>
+                      <span className="text-xs text-muted-foreground">{el.label}</span>
                       <Switch
                         checked={sidebarConfig.elements[el.id] ?? false}
                         onCheckedChange={(v) =>
@@ -292,7 +292,7 @@ export function CVSidebarEditor() {
                 <Label className="text-xs mb-2 block font-semibold">
                   Sections dans la sidebar
                 </Label>
-                <p className="text-[10px] text-stone-400 mb-2">
+                <p className="text-[10px] text-muted-foreground mb-2">
                   Cochez les sections à placer dans la sidebar plutôt que dans la zone principale.
                 </p>
                 <div className="space-y-1.5">
@@ -303,12 +303,12 @@ export function CVSidebarEditor() {
                         "flex items-center justify-between px-2 py-1 rounded-md transition-colors",
                         sec.inSidebar
                           ? "bg-amber-50 dark:bg-amber-900/20"
-                          : "hover:bg-stone-50 dark:hover:bg-stone-800"
+                        : "hover:bg-muted"
                       )}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-xs">{sec.icon}</span>
-                        <span className="text-xs text-stone-700 dark:text-stone-300">{sec.label}</span>
+                        <span className="text-xs text-foreground">{sec.label}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Badge variant="outline" className="text-[9px] px-1">

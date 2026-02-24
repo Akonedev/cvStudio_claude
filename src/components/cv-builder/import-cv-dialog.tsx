@@ -18,7 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Upload, FileText, Sparkles, Check, ChevronRight,
   ChevronLeft, AlertCircle, Loader2, X, FileJson,
-  AlignLeft, Wand2, Eye, File,
+  AlignLeft, Wand2, Eye, File, FileDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CV_TEMPLATES, TEMPLATE_CATEGORIES } from "@/lib/cv-templates";
@@ -52,7 +52,7 @@ const FORMAT_LABELS = [
   { ext: "PDF", icon: FileText, color: "text-red-400" },
   { ext: "DOCX", icon: File, color: "text-blue-400" },
   { ext: "DOC", icon: File, color: "text-blue-500" },
-  { ext: "TXT", icon: FileText, color: "text-stone-400" },
+  { ext: "TXT", icon: FileText, color: "text-muted-foreground" },
   { ext: "JSON", icon: FileJson, color: "text-amber-400" },
 ];
 
@@ -98,12 +98,15 @@ export function ImportCVDialog({ open, onOpenChange }: ImportCVDialogProps) {
   const [cvTitle, setCvTitle] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("classic-dark");
   const [templateCategory, setTemplateCategory] = useState("all");
+  const [isConverting, setIsConverting] = useState(false);
+  const [lastUploadedFile, setLastUploadedFile] = useState<File | null>(null);
 
   const reset = useCallback(() => {
     setStep(1); setIsDragging(false); setIsProcessing(false); setIsSaving(false);
     setParseError(null); setPastedText(""); setInputTab("file");
     setFileName(""); setFileType(""); setFileSize(0);
     setParsed(null); setCvTitle(""); setSelectedTemplate("classic-dark"); setTemplateCategory("all");
+    setIsConverting(false); setLastUploadedFile(null);
   }, []);
 
   const handleClose = () => { reset(); onOpenChange(false); };
@@ -114,12 +117,20 @@ export function ImportCVDialog({ open, onOpenChange }: ImportCVDialogProps) {
     setParseError(null);
     setFileName(file.name);
     setFileSize(file.size);
+    setLastUploadedFile(file);
 
     try {
       const formData = new FormData();
       formData.append("file", file);
 
       const res = await fetch("/api/cvs/parse", { method: "POST", body: formData });
+
+      if (res.status === 413) {
+        setParseError("Le fichier est trop volumineux. Essayez de réduire sa taille ou convertissez-le en DOCX.");
+        setIsProcessing(false);
+        return;
+      }
+
       const json = await res.json();
 
       if (!res.ok) {
@@ -158,6 +169,45 @@ export function ImportCVDialog({ open, onOpenChange }: ImportCVDialogProps) {
     setCvTitle(result.name ? `CV de ${result.name}` : "CV importé");
     setStep(2);
   };
+
+  // ── PDF to DOCX conversion ────────────────────────────────────────────────
+  const handleConvertToDocx = useCallback(async () => {
+    if (!lastUploadedFile) {
+      toast.error("Aucun fichier PDF sélectionné");
+      return;
+    }
+    setIsConverting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", lastUploadedFile);
+
+      const res = await fetch("/api/cvs/pdf-to-docx", { method: "POST", body: formData });
+
+      if (!res.ok) {
+        const json = await res.json();
+        toast.error(json.error ?? "Erreur lors de la conversion");
+        setIsConverting(false);
+        return;
+      }
+
+      // Download the DOCX file
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const outputName = lastUploadedFile.name.replace(/\.pdf$/i, ".docx");
+      a.download = outputName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Fichier converti : ${outputName}`);
+    } catch {
+      toast.error("Erreur réseau lors de la conversion");
+    } finally {
+      setIsConverting(false);
+    }
+  }, [lastUploadedFile]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault(); setIsDragging(false);
@@ -329,7 +379,7 @@ export function ImportCVDialog({ open, onOpenChange }: ImportCVDialogProps) {
                               ))}
                             </div>
                             <p className="text-[11px] text-muted-foreground/70 text-center max-w-xs">
-                              PDF, DOCX, DOC, TXT, MD, JSON — Max 10 Mo
+                              PDF, DOCX, DOC, TXT, MD, JSON — Max 100 Mo
                             </p>
                           </>
                         )}
@@ -344,9 +394,36 @@ export function ImportCVDialog({ open, onOpenChange }: ImportCVDialogProps) {
                     </TabsContent>
                   </Tabs>
                   {parseError && (
-                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                      className="flex items-start gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
-                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />{parseError}
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+                      <div className="flex items-start gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
+                        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />{parseError}
+                      </div>
+                      {lastUploadedFile?.name.toLowerCase().endsWith(".pdf") && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2"
+                          onClick={handleConvertToDocx}
+                          disabled={isConverting}
+                        >
+                          {isConverting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                          Convertir le PDF en DOCX (Word)
+                        </Button>
+                      )}
+                    </motion.div>
+                  )}
+                  {!parseError && lastUploadedFile?.name.toLowerCase().endsWith(".pdf") && !isProcessing && (
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={handleConvertToDocx}
+                        disabled={isConverting}
+                      >
+                        {isConverting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                        Télécharger en DOCX (Word) pour édition
+                      </Button>
                     </motion.div>
                   )}
                 </motion.div>

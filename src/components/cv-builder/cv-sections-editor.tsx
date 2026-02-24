@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCVEditorStore, type ExperienceItem, type EducationItem, type SkillItem, type LanguageItem, type CertificationItem, type ProjectItem } from "@/store/cv-editor-store";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useState, useCallback } from "react";
 
-// ─── Expandable section wrapper ─────────────────────────────────────────────
+// â”€â”€â”€ Expandable section wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SectionAccordion({
   sectionId,
   icon,
@@ -45,19 +45,19 @@ function SectionAccordion({
     <div className={cn(
       "rounded-lg border transition-colors",
       enabled
-        ? "border-stone-200 dark:border-stone-700"
-        : "border-stone-100 dark:border-stone-800 opacity-60"
+        ? "border-border"
+        : "border-border/50 opacity-60"
     )}>
       {/* Header row */}
       <div className="flex items-center gap-1.5 px-2 py-1.5">
         {/* Drag handle + icon */}
-        <div className="flex items-center gap-1 text-stone-400">
+        <div className="flex items-center gap-1 text-muted-foreground">
           <GripVertical className="h-3 w-3 cursor-grab" />
           <span className="text-sm">{icon}</span>
         </div>
 
         {/* Label */}
-        <span className="text-xs font-medium text-stone-700 dark:text-stone-300 flex-1 truncate">
+        <span className="text-xs font-medium text-foreground flex-1 truncate">
           {label}
         </span>
 
@@ -69,7 +69,7 @@ function SectionAccordion({
               "flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors",
               inSidebar
                 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                : "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400 hover:bg-stone-200"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
             )}
             title={inSidebar ? "Dans la sidebar" : "Dans la zone principale"}
           >
@@ -81,13 +81,13 @@ function SectionAccordion({
         {/* Move up/down */}
         <div className="flex items-center">
           {onMoveUp && (
-            <button onClick={onMoveUp} className="p-0.5 hover:bg-stone-100 dark:hover:bg-stone-800 rounded">
-              <ArrowUp className="h-3 w-3 text-stone-400" />
+            <button onClick={onMoveUp} className="p-0.5 hover:bg-muted rounded">
+              <ArrowUp className="h-3 w-3 text-muted-foreground" />
             </button>
           )}
           {onMoveDown && (
-            <button onClick={onMoveDown} className="p-0.5 hover:bg-stone-100 dark:hover:bg-stone-800 rounded">
-              <ArrowDown className="h-3 w-3 text-stone-400" />
+            <button onClick={onMoveDown} className="p-0.5 hover:bg-muted rounded">
+              <ArrowDown className="h-3 w-3 text-muted-foreground" />
             </button>
           )}
         </div>
@@ -97,15 +97,15 @@ function SectionAccordion({
 
         {/* Expand */}
         {enabled && children && (
-          <button onClick={() => setExpanded(!expanded)} className="p-0.5 hover:bg-stone-100 dark:hover:bg-stone-800 rounded">
-            {expanded ? <ChevronUp className="h-3.5 w-3.5 text-stone-400" /> : <ChevronDown className="h-3.5 w-3.5 text-stone-400" />}
+          <button onClick={() => setExpanded(!expanded)} className="p-0.5 hover:bg-muted rounded">
+            {expanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
           </button>
         )}
       </div>
 
       {/* Content */}
       {expanded && enabled && children && (
-        <div className="border-t border-stone-100 dark:border-stone-800 px-3 py-3">
+        <div className="border-t border-border/50 px-3 py-3">
           {children}
         </div>
       )}
@@ -113,7 +113,7 @@ function SectionAccordion({
   );
 }
 
-// ─── Experience Editor ──────────────────────────────────────────────────────
+// â”€â”€â”€ Experience Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ExperienceEditor() {
   const { data, setExperience } = useCVEditorStore();
   const items = data.experience;
@@ -139,7 +139,7 @@ function ExperienceEditor() {
   return (
     <div className="space-y-3">
       {items.map((item, i) => (
-        <div key={item.id} className="space-y-2 p-2 bg-stone-50 dark:bg-stone-900 rounded-md relative">
+        <div key={item.id} className="space-y-2 p-2 bg-muted rounded-md relative">
           <button
             onClick={() => removeItem(i)}
             className="absolute top-1 right-1 p-0.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
@@ -149,7 +149,7 @@ function ExperienceEditor() {
           <Input value={item.position} onChange={(e) => updateItem(i, "position", e.target.value)} placeholder="Poste" className="h-7 text-xs" />
           <Input value={item.company} onChange={(e) => updateItem(i, "company", e.target.value)} placeholder="Entreprise" className="h-7 text-xs" />
           <div className="grid grid-cols-2 gap-1.5">
-            <Input value={item.startDate} onChange={(e) => updateItem(i, "startDate", e.target.value)} placeholder="Début" className="h-7 text-xs" />
+            <Input value={item.startDate} onChange={(e) => updateItem(i, "startDate", e.target.value)} placeholder="DÃ©but" className="h-7 text-xs" />
             <Input value={item.endDate} onChange={(e) => updateItem(i, "endDate", e.target.value)} placeholder="Fin" className="h-7 text-xs" disabled={item.current} />
           </div>
           <div className="flex items-center gap-1.5">
@@ -161,18 +161,18 @@ function ExperienceEditor() {
             onChange={(e) => updateItem(i, "description", e.target.value)}
             placeholder="Description..."
             rows={2}
-            className="w-full rounded border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-950 px-2 py-1 text-xs resize-none"
+            className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-none"
           />
         </div>
       ))}
       <Button onClick={addItem} variant="outline" size="sm" className="w-full text-xs">
-        <Plus className="h-3 w-3 mr-1" /> Ajouter une expérience
+        <Plus className="h-3 w-3 mr-1" /> Ajouter une expÃ©rience
       </Button>
     </div>
   );
 }
 
-// ─── Education Editor ───────────────────────────────────────────────────────
+// â”€â”€â”€ Education Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function EducationEditor() {
   const { data, setEducation } = useCVEditorStore();
   const items = data.education;
@@ -198,15 +198,15 @@ function EducationEditor() {
   return (
     <div className="space-y-3">
       {items.map((item, i) => (
-        <div key={item.id} className="space-y-2 p-2 bg-stone-50 dark:bg-stone-900 rounded-md relative">
+        <div key={item.id} className="space-y-2 p-2 bg-muted rounded-md relative">
           <button onClick={() => removeItem(i)} className="absolute top-1 right-1 p-0.5 hover:bg-red-100 rounded">
             <Trash2 className="h-3 w-3 text-red-400" />
           </button>
-          <Input value={item.degree} onChange={(e) => updateItem(i, "degree", e.target.value)} placeholder="Diplôme" className="h-7 text-xs" />
-          <Input value={item.institution} onChange={(e) => updateItem(i, "institution", e.target.value)} placeholder="Établissement" className="h-7 text-xs" />
+          <Input value={item.degree} onChange={(e) => updateItem(i, "degree", e.target.value)} placeholder="DiplÃ´me" className="h-7 text-xs" />
+          <Input value={item.institution} onChange={(e) => updateItem(i, "institution", e.target.value)} placeholder="Ã‰tablissement" className="h-7 text-xs" />
           <Input value={item.field} onChange={(e) => updateItem(i, "field", e.target.value)} placeholder="Domaine" className="h-7 text-xs" />
           <div className="grid grid-cols-2 gap-1.5">
-            <Input value={item.startDate} onChange={(e) => updateItem(i, "startDate", e.target.value)} placeholder="Début" className="h-7 text-xs" />
+            <Input value={item.startDate} onChange={(e) => updateItem(i, "startDate", e.target.value)} placeholder="DÃ©but" className="h-7 text-xs" />
             <Input value={item.endDate} onChange={(e) => updateItem(i, "endDate", e.target.value)} placeholder="Fin" className="h-7 text-xs" />
           </div>
         </div>
@@ -218,7 +218,7 @@ function EducationEditor() {
   );
 }
 
-// ─── Skills Editor ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Skills Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SkillsEditor() {
   const { data, setSkills } = useCVEditorStore();
   const items = data.skills;
@@ -245,7 +245,7 @@ function SkillsEditor() {
           value={newSkill}
           onChange={(e) => setNewSkill(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && addSkill()}
-          placeholder="Ajouter une compétence..."
+          placeholder="Ajouter une compÃ©tence..."
           className="h-7 text-xs flex-1"
         />
         <Button onClick={addSkill} size="sm" className="h-7 px-2 text-xs">
@@ -254,7 +254,7 @@ function SkillsEditor() {
       </div>
       <div className="space-y-1.5">
         {items.map((skill, i) => (
-          <div key={skill.id} className="flex items-center gap-2 px-2 py-1 bg-stone-50 dark:bg-stone-900 rounded">
+          <div key={skill.id} className="flex items-center gap-2 px-2 py-1 bg-muted rounded">
             <span className="text-xs flex-1 truncate">{skill.name}</span>
             {/* Level dots */}
             <div className="flex gap-0.5">
@@ -264,7 +264,7 @@ function SkillsEditor() {
                   onClick={() => updateLevel(i, lvl)}
                   className={cn(
                     "w-2 h-2 rounded-full transition-colors",
-                    lvl <= skill.level ? "bg-amber-500" : "bg-stone-300 dark:bg-stone-600"
+                    lvl <= skill.level ? "bg-amber-500" : "bg-muted-foreground/30"
                   )}
                 />
               ))}
@@ -279,7 +279,7 @@ function SkillsEditor() {
   );
 }
 
-// ─── Languages Editor ───────────────────────────────────────────────────────
+// â”€â”€â”€ Languages Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function LanguagesEditor() {
   const { data, setLanguages } = useCVEditorStore();
   const items = data.languages;
@@ -296,17 +296,17 @@ function LanguagesEditor() {
     setLanguages(items.filter((_, i) => i !== index));
   };
 
-  const LEVELS = ["Débutant", "Intermédiaire", "Avancé", "Courant", "Natif"];
+  const LEVELS = ["DÃ©butant", "IntermÃ©diaire", "AvancÃ©", "Courant", "Natif"];
 
   return (
     <div className="space-y-2">
       {items.map((item, i) => (
-        <div key={item.id} className="flex items-center gap-1.5 p-1.5 bg-stone-50 dark:bg-stone-900 rounded">
+        <div key={item.id} className="flex items-center gap-1.5 p-1.5 bg-muted rounded">
           <Input value={item.name} onChange={(e) => updateItem(i, "name", e.target.value)} placeholder="Langue" className="h-7 text-xs flex-1" />
           <select
             value={item.level}
             onChange={(e) => updateItem(i, "level", e.target.value)}
-            className="h-7 text-xs rounded border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-950 px-1.5"
+            className="h-7 text-xs rounded border border-input bg-background px-1.5"
           >
             <option value="">Niveau</option>
             {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
@@ -323,7 +323,7 @@ function LanguagesEditor() {
   );
 }
 
-// ─── Certifications Editor ──────────────────────────────────────────────────
+// â”€â”€â”€ Certifications Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CertificationsEditor() {
   const { data, setCertifications } = useCVEditorStore();
   const items = data.certifications;
@@ -343,7 +343,7 @@ function CertificationsEditor() {
   return (
     <div className="space-y-2">
       {items.map((item, i) => (
-        <div key={item.id} className="space-y-1.5 p-2 bg-stone-50 dark:bg-stone-900 rounded relative">
+        <div key={item.id} className="space-y-1.5 p-2 bg-muted rounded relative">
           <button onClick={() => removeItem(i)} className="absolute top-1 right-1 p-0.5 hover:bg-red-100 rounded">
             <Trash2 className="h-2.5 w-2.5 text-red-400" />
           </button>
@@ -359,7 +359,7 @@ function CertificationsEditor() {
   );
 }
 
-// ─── Projects Editor ────────────────────────────────────────────────────────
+// â”€â”€â”€ Projects Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ProjectsEditor() {
   const { data, setProjects } = useCVEditorStore();
   const items = data.projects;
@@ -379,7 +379,7 @@ function ProjectsEditor() {
   return (
     <div className="space-y-2">
       {items.map((item, i) => (
-        <div key={item.id} className="space-y-1.5 p-2 bg-stone-50 dark:bg-stone-900 rounded relative">
+        <div key={item.id} className="space-y-1.5 p-2 bg-muted rounded relative">
           <button onClick={() => removeItem(i)} className="absolute top-1 right-1 p-0.5 hover:bg-red-100 rounded">
             <Trash2 className="h-2.5 w-2.5 text-red-400" />
           </button>
@@ -389,12 +389,12 @@ function ProjectsEditor() {
             onChange={(e) => updateItem(i, "description", e.target.value)}
             placeholder="Description..."
             rows={2}
-            className="w-full rounded border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-950 px-2 py-1 text-xs resize-none"
+            className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-none"
           />
           <Input
             value={item.technologies.join(", ")}
             onChange={(e) => updateItem(i, "technologies", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
-            placeholder="Technologies (séparées par des virgules)"
+            placeholder="Technologies (sÃ©parÃ©es par des virgules)"
             className="h-7 text-xs"
           />
         </div>
@@ -406,7 +406,7 @@ function ProjectsEditor() {
   );
 }
 
-// ─── Section type → editor component mapping ────────────────────────────────
+// â”€â”€â”€ Section type â†’ editor component mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SECTION_EDITORS: Record<string, React.ComponentType> = {
   experience: ExperienceEditor,
   education: EducationEditor,
@@ -416,7 +416,7 @@ const SECTION_EDITORS: Record<string, React.ComponentType> = {
   projects: ProjectsEditor,
 };
 
-// ─── Main component ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function CVSectionsEditor() {
   const { sections, toggleSection, reorderSections, setSectionInSidebar } = useCVEditorStore();
 
@@ -434,11 +434,11 @@ export function CVSectionsEditor() {
 
   return (
     <div className="space-y-2 p-4 text-sm overflow-y-auto max-h-[calc(100vh-200px)]">
-      <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-1">
+      <h3 className="font-semibold text-foreground mb-1">
         Sections du CV
       </h3>
-      <p className="text-[10px] text-stone-400 mb-3">
-        Activez, ordonnez et assignez chaque section à la sidebar ou à la zone principale.
+      <p className="text-[10px] text-muted-foreground mb-3">
+        Activez, ordonnez et assignez chaque section Ã  la sidebar ou Ã  la zone principale.
       </p>
 
       <div className="space-y-1.5">
@@ -458,8 +458,8 @@ export function CVSectionsEditor() {
               onMoveDown={i < sorted.length - 1 ? () => moveDown(i) : undefined}
             >
               {Editor ? <Editor /> : (
-                <p className="text-[10px] text-stone-400 italic">
-                  Éditeur de contenu bientôt disponible pour cette section.
+                <p className="text-[10px] text-muted-foreground italic">
+                  Ã‰diteur de contenu bientÃ´t disponible pour cette section.
                 </p>
               )}
             </SectionAccordion>

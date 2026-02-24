@@ -143,7 +143,7 @@ export function CVEditorCanvas({ cvId }: CVEditorCanvasProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-        <div className="flex flex-col items-center gap-3 text-stone-400">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin" />
           <p className="text-sm">Chargement du CV...</p>
         </div>
@@ -156,16 +156,16 @@ export function CVEditorCanvas({ cvId }: CVEditorCanvasProps) {
   return (
     <div className="flex flex-col h-[calc(100vh-80px)]">
       {/* ─── Top Toolbar ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background">
         {/* Left: Back + title */}
         <div className="flex items-center gap-3">
-          <Link href="/cv-builder" className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded">
-            <ChevronLeft className="h-4 w-4 text-stone-400" />
+          <Link href="/cv-builder" className="p-1 hover:bg-muted rounded">
+            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
           </Link>
           <div>
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-amber-500" />
-              <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">
+              <span className="text-sm font-semibold text-foreground">
                 {cvTitle || "Sans titre"}
               </span>
               {isDirty && (
@@ -175,7 +175,7 @@ export function CVEditorCanvas({ cvId }: CVEditorCanvasProps) {
               )}
             </div>
             {fullName && (
-              <p className="text-[10px] text-stone-400 ml-6">{fullName}</p>
+              <p className="text-[10px] text-muted-foreground ml-6">{fullName}</p>
             )}
           </div>
         </div>
@@ -183,7 +183,7 @@ export function CVEditorCanvas({ cvId }: CVEditorCanvasProps) {
         {/* Center: ATS score */}
         <div className="flex items-center gap-3">
           {atsScore !== null && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted">
               <CheckCircle2 className={cn(
                 "h-3 w-3",
                 atsScore >= 80 ? "text-emerald-500" : atsScore >= 60 ? "text-amber-500" : "text-red-500"
@@ -196,19 +196,19 @@ export function CVEditorCanvas({ cvId }: CVEditorCanvasProps) {
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5">
           {/* Zoom controls */}
-          <div className="flex items-center gap-1 border-r border-stone-200 dark:border-stone-700 pr-2 mr-1">
+          <div className="flex items-center gap-1 border-r border-border pr-2 mr-1">
             <button
               onClick={() => setZoom(Math.max(0.3, zoom - 0.1))}
-              className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded"
+              className="p-1 hover:bg-muted rounded"
             >
-              <ZoomOut className="h-3.5 w-3.5 text-stone-400" />
+              <ZoomOut className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
-            <span className="text-[10px] text-stone-400 w-8 text-center">{Math.round(zoom * 100)}%</span>
+            <span className="text-[10px] text-muted-foreground w-8 text-center">{Math.round(zoom * 100)}%</span>
             <button
               onClick={() => setZoom(Math.min(1.5, zoom + 0.1))}
-              className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded"
+              className="p-1 hover:bg-muted rounded"
             >
-              <ZoomIn className="h-3.5 w-3.5 text-stone-400" />
+              <ZoomIn className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
           </div>
 
@@ -248,9 +248,9 @@ export function CVEditorCanvas({ cvId }: CVEditorCanvasProps) {
       {/* ─── Main Layout: Editor + Preview + AI ───────────────────────────── */}
       <div className="flex flex-1 min-h-0">
         {/* ─── Left Panel: Editor Tabs ───────────────────────────────────── */}
-        <div className="w-[300px] border-r border-stone-200 dark:border-stone-800 flex flex-col bg-white dark:bg-stone-950">
+        <div className="w-[300px] border-r border-border flex flex-col bg-background">
           {/* Tab bar */}
-          <div className="flex border-b border-stone-200 dark:border-stone-800">
+          <div className="flex border-b border-border">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -261,7 +261,7 @@ export function CVEditorCanvas({ cvId }: CVEditorCanvasProps) {
                     "flex-1 flex items-center justify-center gap-1 px-2 py-2 text-xs font-medium transition-colors border-b-2",
                     activePanel === tab.id
                       ? "border-amber-500 text-amber-600 dark:text-amber-400"
-                      : "border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -280,7 +280,7 @@ export function CVEditorCanvas({ cvId }: CVEditorCanvasProps) {
         </div>
 
         {/* ─── Center: Preview ───────────────────────────────────────────── */}
-        <div className="flex-1 bg-stone-100 dark:bg-stone-900 overflow-auto flex items-start justify-center py-8 px-4">
+        <div className="flex-1 bg-muted overflow-auto flex items-start justify-center py-8 px-4">
           <div
             style={{
               transform: `scale(${zoom})`,
@@ -293,14 +293,14 @@ export function CVEditorCanvas({ cvId }: CVEditorCanvasProps) {
 
         {/* ─── Right Panel: AI Assistant ──────────────────────────────────── */}
         {showAIPanel && (
-          <div className="w-[320px] border-l border-stone-200 dark:border-stone-800 flex flex-col bg-white dark:bg-stone-950">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-stone-200 dark:border-stone-800">
+          <div className="w-[320px] border-l border-border flex flex-col bg-background">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border">
               <div className="flex items-center gap-1.5">
                 <MessageSquare className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-xs font-semibold text-stone-700 dark:text-stone-300">Assistant IA</span>
+                <span className="text-xs font-semibold text-foreground">Assistant IA</span>
               </div>
-              <button onClick={() => setShowAIPanel(false)} className="p-0.5 hover:bg-stone-100 dark:hover:bg-stone-800 rounded">
-                <X className="h-3.5 w-3.5 text-stone-400" />
+              <button onClick={() => setShowAIPanel(false)} className="p-0.5 hover:bg-muted rounded">
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
             </div>
             <div className="flex-1 overflow-hidden">

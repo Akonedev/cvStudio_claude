@@ -155,14 +155,14 @@ export function GlobalAIChatPanel() {
       {isOpen && (
         <div
           className={cn(
-            "fixed z-50 bg-white dark:bg-stone-950 rounded-lg shadow-2xl border border-stone-200 dark:border-stone-800 flex flex-col transition-all duration-200",
+            "fixed z-50 bg-card rounded-lg shadow-2xl border border-border flex flex-col transition-all duration-200",
             isMinimized
               ? "bottom-6 right-6 w-72 h-12"
               : "bottom-6 right-6 w-96 h-[520px]"
           )}
         >
           {/* ─── Header ────────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-stone-200 dark:border-stone-800 rounded-t-lg bg-stone-50 dark:bg-stone-900">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border rounded-t-lg bg-muted">
             <div className="flex items-center gap-2">
               <div
                 className={cn("w-6 h-6 rounded-full flex items-center justify-center")}
@@ -179,7 +179,7 @@ export function GlobalAIChatPanel() {
               <div>
                 <button
                   onClick={() => setShowAgentPicker(!showAgentPicker)}
-                  className="text-xs font-semibold text-stone-700 dark:text-stone-300 hover:text-amber-500 flex items-center gap-1 transition-colors"
+                  className="text-xs font-semibold text-foreground hover:text-amber-500 flex items-center gap-1 transition-colors"
                 >
                   {currentLabel}
                   <ChevronDown className="h-3 w-3" />
@@ -189,36 +189,36 @@ export function GlobalAIChatPanel() {
             <div className="flex items-center gap-0.5">
               <button
                 onClick={() => setShowAgentPicker(!showAgentPicker)}
-                className="p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"
+                className="p-1 hover:bg-muted rounded"
                 title="Changer d'agent"
               >
-                <Users className="h-3 w-3 text-stone-400" />
+                <Users className="h-3 w-3 text-muted-foreground" />
               </button>
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
-                className="p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"
+                className="p-1 hover:bg-muted rounded"
               >
                 {isMinimized ? (
-                  <Maximize2 className="h-3 w-3 text-stone-400" />
+                  <Maximize2 className="h-3 w-3 text-muted-foreground" />
                 ) : (
-                  <Minimize2 className="h-3 w-3 text-stone-400" />
+                  <Minimize2 className="h-3 w-3 text-muted-foreground" />
                 )}
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"
+                className="p-1 hover:bg-muted rounded"
               >
-                <X className="h-3 w-3 text-stone-400" />
+                <X className="h-3 w-3 text-muted-foreground" />
               </button>
             </div>
           </div>
 
           {/* ─── Agent Picker ──────────────────────────────────────────── */}
           {showAgentPicker && !isMinimized && (
-            <div className="border-b border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50 max-h-48 overflow-y-auto">
+            <div className="border-b border-border bg-muted/50 max-h-48 overflow-y-auto">
               <button
                 className={cn(
-                  "w-full text-left px-3 py-2 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center gap-2 transition-colors",
+                  "w-full text-left px-3 py-2 text-xs hover:bg-muted flex items-center gap-2 transition-colors",
                   !selectedAgent && "bg-amber-50 dark:bg-amber-900/20"
                 )}
                 onClick={() => selectAgent(null)}
@@ -226,14 +226,14 @@ export function GlobalAIChatPanel() {
                 <Sparkles className="h-3 w-3 text-amber-500" />
                 <div>
                   <span className="font-medium">Auto ({label})</span>
-                  <span className="text-stone-400 ml-1">— détection par page</span>
+                  <span className="text-muted-foreground ml-1">— détection par page</span>
                 </div>
               </button>
               {agents.map((agent) => (
                 <button
                   key={agent.id}
                   className={cn(
-                    "w-full text-left px-3 py-2 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center gap-2 transition-colors",
+                    "w-full text-left px-3 py-2 text-xs hover:bg-muted flex items-center gap-2 transition-colors",
                     selectedAgent?.id === agent.id && "bg-amber-50 dark:bg-amber-900/20"
                   )}
                   onClick={() => selectAgent(agent)}
@@ -249,7 +249,7 @@ export function GlobalAIChatPanel() {
                     {agent.isDefault && (
                       <span className="text-amber-500 text-[9px] ml-1">par défaut</span>
                     )}
-                    <p className="text-stone-400 truncate text-[10px]">{agent.description}</p>
+                    <p className="text-muted-foreground truncate text-[10px]">{agent.description}</p>
                   </div>
                 </button>
               ))}
@@ -266,10 +266,10 @@ export function GlobalAIChatPanel() {
                     <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-3">
                       <Sparkles className="h-6 w-6 text-amber-500" />
                     </div>
-                    <h4 className="text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1">
+                    <h4 className="text-sm font-semibold text-foreground mb-1">
                       {currentLabel}
                     </h4>
-                    <p className="text-xs text-stone-400 max-w-[260px] mx-auto">
+                    <p className="text-xs text-muted-foreground max-w-[260px] mx-auto">
                       {currentGreeting}
                     </p>
                   </div>
@@ -293,13 +293,13 @@ export function GlobalAIChatPanel() {
                             "max-w-[80%] rounded-lg px-3 py-2 text-xs leading-relaxed",
                             msg.role === "user"
                               ? "bg-amber-500 text-white rounded-br-none"
-                              : "bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-bl-none"
+                              : "bg-muted text-foreground rounded-bl-none"
                           )}
                         >
                           <div className="whitespace-pre-wrap">{msg.content}</div>
                           <div className={cn(
                             "text-[9px] mt-1 flex items-center gap-1",
-                            msg.role === "user" ? "text-amber-200" : "text-stone-400"
+                            msg.role === "user" ? "text-amber-200" : "text-muted-foreground"
                           )}>
                             {msg.role === "assistant" && msg.agent && (
                               <span className="font-medium">{msg.agent} ·</span>
@@ -308,8 +308,8 @@ export function GlobalAIChatPanel() {
                           </div>
                         </div>
                         {msg.role === "user" && (
-                          <div className="w-6 h-6 rounded-full bg-stone-200 dark:bg-stone-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <User className="h-3 w-3 text-stone-500" />
+                          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <User className="h-3 w-3 text-muted-foreground" />
                           </div>
                         )}
                       </div>
@@ -320,10 +320,10 @@ export function GlobalAIChatPanel() {
                         <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
                           <Bot className="h-3 w-3 text-amber-600" />
                         </div>
-                        <div className="bg-stone-100 dark:bg-stone-800 rounded-lg px-3 py-2">
+                        <div className="bg-muted rounded-lg px-3 py-2">
                           <div className="flex items-center gap-1.5">
                             <Loader2 className="h-3 w-3 animate-spin text-amber-500" />
-                            <span className="text-xs text-stone-400">Réflexion...</span>
+                            <span className="text-xs text-muted-foreground">Réflexion...</span>
                           </div>
                         </div>
                       </div>
@@ -342,10 +342,10 @@ export function GlobalAIChatPanel() {
 
               {/* Clear */}
               {messages.length > 0 && (
-                <div className="px-3 py-1 border-t border-stone-100 dark:border-stone-800">
+                <div className="px-3 py-1 border-t border-border">
                   <button
                     onClick={clearHistory}
-                    className="flex items-center gap-1 text-[10px] text-stone-400 hover:text-stone-600"
+                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
                   >
                     <Trash2 className="h-2.5 w-2.5" /> Effacer
                   </button>
@@ -353,7 +353,7 @@ export function GlobalAIChatPanel() {
               )}
 
               {/* Input */}
-              <div className="p-3 border-t border-stone-200 dark:border-stone-800">
+              <div className="p-3 border-t border-border">
                 <div className="flex gap-1.5">
                   <textarea
                     ref={inputRef}
@@ -362,7 +362,7 @@ export function GlobalAIChatPanel() {
                     onKeyDown={handleKeyDown}
                     placeholder="Posez votre question..."
                     rows={1}
-                    className="flex-1 rounded-md border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-2.5 py-1.5 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 min-h-[32px] max-h-[80px]"
+                    className="flex-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 min-h-[32px] max-h-[80px]"
                     style={{ height: "auto", overflow: "hidden" }}
                     onInput={(e) => {
                       const target = e.target as HTMLTextAreaElement;

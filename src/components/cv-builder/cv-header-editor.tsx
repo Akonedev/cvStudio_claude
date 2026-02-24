@@ -49,7 +49,7 @@ export function CVHeaderEditor() {
     <div className="space-y-5 p-4 text-sm overflow-y-auto max-h-[calc(100vh-200px)]">
       {/* ─── Header Style ────────────────────────────────────────────────── */}
       <section>
-        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-2">
+        <h3 className="font-semibold text-foreground mb-2">
           Style d&apos;en-tête
         </h3>
         <div className="grid grid-cols-2 gap-1.5">
@@ -61,16 +61,16 @@ export function CVHeaderEditor() {
                 "flex flex-col items-start px-2.5 py-2 rounded-md border text-left transition-all",
                 headerConfig.style === style.id
                   ? "bg-amber-50 border-amber-300 dark:bg-amber-900/30 dark:border-amber-700"
-                  : "border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800"
+                  : "border-border hover:bg-muted"
               )}
             >
               <div className="flex items-center gap-1.5 w-full">
-                <span className="text-xs font-medium text-stone-700 dark:text-stone-300">{style.name}</span>
+                <span className="text-xs font-medium text-foreground">{style.name}</span>
                 {headerConfig.style === style.id && (
                   <Check className="h-3 w-3 text-amber-500 ml-auto" />
                 )}
               </div>
-              <span className="text-[10px] text-stone-400 mt-0.5">{style.description}</span>
+              <span className="text-[10px] text-muted-foreground mt-0.5">{style.description}</span>
             </button>
           ))}
         </div>
@@ -81,7 +81,7 @@ export function CVHeaderEditor() {
       {/* ─── Photo Config ────────────────────────────────────────────────── */}
       <section>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-stone-800 dark:text-stone-200 flex items-center gap-1.5">
+          <h3 className="font-semibold text-foreground flex items-center gap-1.5">
             <Camera className="h-4 w-4" /> Photo
           </h3>
           <Switch
@@ -101,7 +101,7 @@ export function CVHeaderEditor() {
                     "flex-1 px-2 py-1 rounded text-xs border transition-colors",
                     headerConfig.photoPosition === pos.id
                       ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30"
-                      : "border-stone-200 text-stone-500 dark:border-stone-700"
+                      : "border-border text-muted-foreground"
                   )}
                 >
                   {pos.label}
@@ -118,7 +118,7 @@ export function CVHeaderEditor() {
       <section>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <PanelLeft className="h-3.5 w-3.5 text-stone-400" />
+            <PanelLeft className="h-3.5 w-3.5 text-muted-foreground" />
             <Label htmlFor="header-sidebar" className="text-xs font-semibold">
               Infos perso dans la sidebar
             </Label>
@@ -129,7 +129,7 @@ export function CVHeaderEditor() {
             onCheckedChange={(v) => setHeaderConfig({ inSidebar: v })}
           />
         </div>
-        <p className="text-[10px] text-stone-400 mt-1">
+        <p className="text-[10px] text-muted-foreground mt-1">
           Si activé, le nom, titre et contacts seront dans la sidebar (pas de doublon dans l&apos;en-tête).
         </p>
       </section>
@@ -138,7 +138,7 @@ export function CVHeaderEditor() {
 
       {/* ─── Visibility toggles ──────────────────────────────────────────── */}
       <section>
-        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-2">
+        <h3 className="font-semibold text-foreground mb-2">
           Éléments visibles
         </h3>
         <div className="space-y-2">
@@ -153,7 +153,7 @@ export function CVHeaderEditor() {
             { key: "showWebsite", label: "Site web" },
           ].map((item) => (
             <div key={item.key} className="flex items-center justify-between">
-              <span className="text-xs text-stone-600 dark:text-stone-400">{item.label}</span>
+              <span className="text-xs text-muted-foreground">{item.label}</span>
               <Switch
                 checked={(headerConfig as unknown as Record<string, unknown>)[item.key] as boolean}
                 onCheckedChange={(v) =>
@@ -169,7 +169,7 @@ export function CVHeaderEditor() {
 
       {/* ─── Personal info fields ────────────────────────────────────────── */}
       <section>
-        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-3">
+        <h3 className="font-semibold text-foreground mb-3">
           Informations personnelles
         </h3>
         <div className="space-y-3">
@@ -178,7 +178,7 @@ export function CVHeaderEditor() {
             return (
               <div key={field.key}>
                 <Label className="text-xs mb-1 block flex items-center gap-1.5">
-                  <Icon className="h-3 w-3 text-stone-400" />
+                  <Icon className="h-3 w-3 text-muted-foreground" />
                   {field.label}
                 </Label>
                 <Input
@@ -197,7 +197,7 @@ export function CVHeaderEditor() {
 
       {/* ─── Summary ─────────────────────────────────────────────────────── */}
       <section>
-        <h3 className="font-semibold text-stone-800 dark:text-stone-200 mb-2">
+        <h3 className="font-semibold text-foreground mb-2">
           Profil / Résumé
         </h3>
         <textarea
@@ -205,7 +205,7 @@ export function CVHeaderEditor() {
           onChange={(e) => useCVEditorStore.getState().setSummary(e.target.value)}
           placeholder="Décrivez votre profil professionnel en quelques lignes..."
           rows={4}
-          className="w-full rounded-md border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
         />
       </section>
     </div>

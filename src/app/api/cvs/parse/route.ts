@@ -1,6 +1,16 @@
 import { NextRequest } from "next/server";
 import { ok, err, withAuth } from "@/lib/api-response";
 
+// Allow large file uploads (up to 100MB)
+export const config = {
+  api: { bodyParser: false },
+};
+
+// Next.js App Router: increase body size limit
+export const maxDuration = 60; // seconds
+// Route segment config for body size
+export const runtime = "nodejs";
+
 // ─── UTF-8 double-encoding fix ────────────────────────────────────────────────
 
 /**
@@ -45,8 +55,13 @@ export const POST = withAuth(async (req: NextRequest) => {
   let formData: FormData;
   try {
     formData = await req.formData();
-  } catch {
-    return err("Le corps de la requête doit être un FormData avec un fichier", 400);
+  } catch (e) {
+    const message = (e as Error).message || "";
+    if (message.includes("size") || message.includes("limit") || message.includes("too large")) {
+      return err("Le fichier est trop volumineux. Taille maximale : 100 Mo.", 413);
+    }
+    console.error("[parse] FormData error:", message);
+    return err("Impossible de lire le fichier envoyé. Vérifiez le format et réessayez.", 400);
   }
 
   const file = formData.get("file");
@@ -55,9 +70,9 @@ export const POST = withAuth(async (req: NextRequest) => {
   }
 
   const fileName = file.name.toLowerCase();
-  const maxSize = 10 * 1024 * 1024; // 10MB
+  const maxSize = 100 * 1024 * 1024; // 100MB
   if (file.size > maxSize) {
-    return err("Le fichier dépasse la taille maximale de 10 Mo", 400);
+    return err("Le fichier dépasse la taille maximale de 100 Mo", 400);
   }
 
   try {
@@ -73,6 +88,17 @@ export const POST = withAuth(async (req: NextRequest) => {
       const buffer = Buffer.from(await file.arrayBuffer());
       const pdfData = await pdfParse(buffer);
       rawText = fixEncoding(pdfData.text);
+
+      // Detect image-based PDFs where very little text is extracted
+      const cleanedText = rawText.replace(/\s+/g, " ").trim();
+      if (cleanedText.length < 50 && pdfData.numpages > 0) {
+        return err(
+          `Ce PDF semble être basé sur des images (${pdfData.numpages} page(s), seulement ${cleanedText.length} caractères extraits). ` +
+          "Veuillez convertir le PDF en DOCX (via Word ou un outil en ligne) puis réimporter le fichier DOCX, " +
+          "ou coller le texte manuellement dans l'onglet \"Coller\".",
+          400
+        );
+      }
     }
     // ── DOCX / DOC ──────────────────────────────────────────────────────────
     else if (fileName.endsWith(".docx") || fileName.endsWith(".doc")) {
