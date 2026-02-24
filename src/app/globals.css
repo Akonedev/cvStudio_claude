@@ -2,7 +2,10 @@
 
 @import "tailwindcss";
 
-:root {
+/* ─── Tailwind v4: class-based dark mode for next-themes ──────────────────── */
+@custom-variant dark (&:is(.dark *));
+
+:root, .dark {
   --background: 20 14% 4%;
   --foreground: 40 15% 96%;
   --card: 24 10% 8%;

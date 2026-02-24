@@ -396,6 +396,22 @@ export const useCVEditorStore = create<CVEditorStore>()(
               existing.inSidebar = (sec.inSidebar as boolean) ?? false;
             }
           }
+        } else {
+          // Auto-enable sections based on data presence
+          const hasData: Record<string, boolean> = {
+            summary: !!((cvData.summary as string)?.trim()),
+            experience: Array.isArray(cvData.experience) && cvData.experience.length > 0,
+            education: Array.isArray(cvData.education) && cvData.education.length > 0,
+            skills: skills.length > 0,
+            languages: languages.length > 0,
+            certifications: certifications.length > 0,
+            projects: projects.length > 0,
+            hobbies: Array.isArray(cvData.hobbies) && (cvData.hobbies as string[]).length > 0,
+            references: Array.isArray(cvData.references) && (cvData.references as string[]).length > 0,
+          };
+          for (const sec of sections) {
+            if (hasData[sec.id]) sec.enabled = true;
+          }
         }
 
         set({

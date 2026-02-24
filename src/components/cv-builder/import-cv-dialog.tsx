@@ -177,6 +177,30 @@ export function ImportCVDialog({ open, onOpenChange }: ImportCVDialogProps) {
     setIsSaving(true);
     const tmpl = CV_TEMPLATES.find((t) => t.id === selectedTemplate) ?? CV_TEMPLATES[0];
 
+    // Parse period strings into startDate/endDate
+    function splitPeriod(period: string) {
+      if (!period) return { startDate: "", endDate: "", current: false };
+      const current = /présent|present|actuel|aujourd'hui|current|en cours/i.test(period);
+      const datePattern = /(?:(?:jan|fev|fév|mar|avr|mai|jun|jui|jul|aoû|aou|sep|oct|nov|déc|dec)[\w.]*\s*)?(\d{4})/gi;
+      const dates: string[] = [];
+      let m;
+      while ((m = datePattern.exec(period))) { dates.push(m[0].trim()); }
+      return { startDate: dates[0] ?? "", endDate: current ? "Présent" : (dates[1] ?? ""), current };
+    }
+
+    // Determine which sections have data and should be enabled
+    const sectionsConfig = [
+      { id: "summary", type: "summary", enabled: !!(parsed.summary?.trim()), order: 0 },
+      { id: "experience", type: "experience", enabled: (parsed.experience?.length ?? 0) > 0, order: 1 },
+      { id: "education", type: "education", enabled: (parsed.education?.length ?? 0) > 0, order: 2 },
+      { id: "skills", type: "skills", enabled: (parsed.skills?.length ?? 0) > 0, order: 3 },
+      { id: "languages", type: "languages", enabled: (parsed.languages?.length ?? 0) > 0, order: 4 },
+      { id: "certifications", type: "certifications", enabled: (parsed.certifications?.length ?? 0) > 0, order: 5 },
+      { id: "projects", type: "projects", enabled: false, order: 6 },
+      { id: "hobbies", type: "hobbies", enabled: false, order: 7 },
+      { id: "references", type: "references", enabled: false, order: 8 },
+    ];
+
     const body = {
       title: cvTitle || "CV importé",
       template: selectedTemplate,
@@ -193,21 +217,29 @@ export function ImportCVDialog({ open, onOpenChange }: ImportCVDialogProps) {
           website: parsed.website ?? "",
         },
         summary: parsed.summary ?? "",
-        experience: parsed.experience?.map((e, i) => ({
-          id: `exp-${i}`, position: e.position, company: e.company,
-          location: "", startDate: "", endDate: "", current: false,
-          description: e.description, bullets: e.bullets,
-        })) ?? [],
-        education: parsed.education?.map((e, i) => ({
-          id: `edu-${i}`, degree: e.degree, institution: e.institution,
-          field: "", startDate: "", endDate: e.period, description: e.description,
-        })) ?? [],
+        experience: parsed.experience?.map((e, i) => {
+          const { startDate, endDate, current } = splitPeriod(e.period);
+          return {
+            id: `exp-${i}`, position: e.position, company: e.company,
+            location: (e as Record<string, unknown>).location as string ?? "",
+            startDate, endDate, current,
+            description: e.description, bullets: e.bullets,
+          };
+        }) ?? [],
+        education: parsed.education?.map((e, i) => {
+          const { startDate, endDate } = splitPeriod(e.period);
+          return {
+            id: `edu-${i}`, degree: e.degree, institution: e.institution,
+            field: "", startDate, endDate, description: e.description,
+          };
+        }) ?? [],
         skills: parsed.skills?.map((s, i) => ({ id: `skill-${i}`, name: s, level: 3, category: "" })) ?? [],
         languages: parsed.languages?.map((l, i) => ({ id: `lang-${i}`, name: l.name, level: l.level })) ?? [],
         certifications: parsed.certifications?.map((c, i) => ({
           id: `cert-${i}`, name: c.name, issuer: c.issuer, date: c.date, url: "",
         })) ?? [],
         projects: [], hobbies: [], references: [],
+        sections: sectionsConfig,
         importedAt: new Date().toISOString(), importSource: fileType || "paste",
         importFileName: fileName || undefined,
       },
