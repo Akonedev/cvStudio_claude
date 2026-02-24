@@ -31,10 +31,11 @@ export const POST = withAuth(async (req: NextRequest) => {
     // ── PDF ──────────────────────────────────────────────────────────────────
     if (fileName.endsWith(".pdf")) {
       fileType = "pdf";
-      const pdfModule = await import("pdf-parse");
-      const pdfParse = (pdfModule as { default?: (buf: Buffer) => Promise<{ text: string }> }).default ?? pdfModule;
+      // pdf-parse v1: test-file workaround handled in Dockerfile (copies test PDF to CWD)
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string; numpages: number }>;
       const buffer = Buffer.from(await file.arrayBuffer());
-      const pdfData = await (pdfParse as (buf: Buffer) => Promise<{ text: string }>)(buffer);
+      const pdfData = await pdfParse(buffer);
       rawText = pdfData.text;
     }
     // ── DOCX / DOC ──────────────────────────────────────────────────────────

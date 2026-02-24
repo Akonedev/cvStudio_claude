@@ -59,6 +59,13 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 # Full node_modules: runtime app + prisma CLI + pg adapter
 COPY --from=builder /app/node_modules ./node_modules
 
+# pdf-parse v1 test-file workaround: its index.js checks !module.parent and tries
+# to read ./test/data/05-versions-space.pdf relative to CWD. In bundled environments
+# (turbopack), module.parent is null so the test code always runs.
+# We copy the test PDF from node_modules to the expected CWD-relative path.
+RUN mkdir -p /app/test/data && \
+    cp /app/node_modules/pdf-parse/test/data/05-versions-space.pdf /app/test/data/
+
 # Entrypoint: run Prisma migrations then start app
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

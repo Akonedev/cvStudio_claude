@@ -7,8 +7,23 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   MessageSquare, Send, Loader2, X, Trash2, Sparkles,
-  Bot, User, Minimize2, Maximize2, ChevronDown
+  Bot, User, Minimize2, Maximize2, ChevronDown, Users
 } from "lucide-react";
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+interface AgentMini {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  context: string;
+  icon: string;
+  color: string;
+  isDefault: boolean;
+  greeting?: string | null;
+  capabilities?: string[] | null;
+}
 
 // ─── Page context detection ─────────────────────────────────────────────────
 function getPageContext(pathname: string): {
@@ -32,19 +47,53 @@ const CONTEXT_GREETINGS: Record<string, string> = {
   general: "Comment puis-je vous aider aujourd'hui ? Je suis votre assistant carrière IA.",
 };
 
+// ── Context enum mapping ────────────────────────────────────────────────────
+const DB_CONTEXT_MAP: Record<string, string> = {
+  CV: "cv",
+  COVER_LETTER: "cover-letter",
+  INTERVIEW: "interview",
+  JOB_MATCHER: "job-matcher",
+  ATS: "cv",
+  CAREER: "general",
+  GENERAL: "general",
+};
+
 export function GlobalAIChatPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState("");
+  const [showAgentPicker, setShowAgentPicker] = useState(false);
+  const [agents, setAgents] = useState<AgentMini[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<AgentMini | null>(null);
   const pathname = usePathname();
   const { context, label, color } = getPageContext(pathname);
 
-  const { messages, isLoading, error, sendMessage, clearHistory, cancelRequest } = useAIChat({
+  const { messages, isLoading, error, sendMessage, clearHistory, cancelRequest, switchAgent } = useAIChat({
     context,
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Fetch available agents
+  useEffect(() => {
+    fetch("/api/ai/agents")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && Array.isArray(json.data)) {
+          setAgents(json.data);
+          // Auto-select default agent for current context
+          const contextDefault = json.data.find(
+            (a: AgentMini) => a.isDefault && DB_CONTEXT_MAP[a.context] === context
+          );
+          if (contextDefault) {
+            setSelectedAgent(contextDefault);
+            switchAgent(contextDefault.id);
+          }
+        }
+      })
+      .catch(() => {/* no agents available */});
+  }, [context, switchAgent]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -71,9 +120,18 @@ export function GlobalAIChatPanel() {
     }
   };
 
+  const selectAgent = (agent: AgentMini | null) => {
+    setSelectedAgent(agent);
+    switchAgent(agent?.id);
+    setShowAgentPicker(false);
+  };
+
   // Don't show the global FAB when inside the CV editor (it has its own AI panel)
   const isInCVEditor = pathname.match(/\/cv-builder\/[^/]+/);
   if (isInCVEditor) return null;
+
+  const currentGreeting = selectedAgent?.greeting || CONTEXT_GREETINGS[context];
+  const currentLabel = selectedAgent?.name || `Assistant — ${label}`;
 
   return (
     <>
@@ -106,19 +164,36 @@ export function GlobalAIChatPanel() {
           {/* ─── Header ────────────────────────────────────────────────── */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-stone-200 dark:border-stone-800 rounded-t-lg bg-stone-50 dark:bg-stone-900">
             <div className="flex items-center gap-2">
-              <div className={cn("w-6 h-6 rounded-full flex items-center justify-center", color)}>
-                <Sparkles className="h-3 w-3 text-white" />
+              <div
+                className={cn("w-6 h-6 rounded-full flex items-center justify-center")}
+                style={selectedAgent ? { backgroundColor: `${selectedAgent.color}30`, color: selectedAgent.color } : undefined}
+              >
+                {selectedAgent ? (
+                  <Bot className="h-3 w-3" />
+                ) : (
+                  <div className={cn("w-6 h-6 rounded-full flex items-center justify-center", color)}>
+                    <Sparkles className="h-3 w-3 text-white" />
+                  </div>
+                )}
               </div>
               <div>
-                <span className="text-xs font-semibold text-stone-700 dark:text-stone-300">
-                  Assistant IA
-                </span>
-                <span className="text-[9px] text-stone-400 ml-1.5 px-1.5 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800">
-                  {label}
-                </span>
+                <button
+                  onClick={() => setShowAgentPicker(!showAgentPicker)}
+                  className="text-xs font-semibold text-stone-700 dark:text-stone-300 hover:text-amber-500 flex items-center gap-1 transition-colors"
+                >
+                  {currentLabel}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
               </div>
             </div>
             <div className="flex items-center gap-0.5">
+              <button
+                onClick={() => setShowAgentPicker(!showAgentPicker)}
+                className="p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"
+                title="Changer d'agent"
+              >
+                <Users className="h-3 w-3 text-stone-400" />
+              </button>
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
                 className="p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"
@@ -138,6 +213,49 @@ export function GlobalAIChatPanel() {
             </div>
           </div>
 
+          {/* ─── Agent Picker ──────────────────────────────────────────── */}
+          {showAgentPicker && !isMinimized && (
+            <div className="border-b border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50 max-h-48 overflow-y-auto">
+              <button
+                className={cn(
+                  "w-full text-left px-3 py-2 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center gap-2 transition-colors",
+                  !selectedAgent && "bg-amber-50 dark:bg-amber-900/20"
+                )}
+                onClick={() => selectAgent(null)}
+              >
+                <Sparkles className="h-3 w-3 text-amber-500" />
+                <div>
+                  <span className="font-medium">Auto ({label})</span>
+                  <span className="text-stone-400 ml-1">— détection par page</span>
+                </div>
+              </button>
+              {agents.map((agent) => (
+                <button
+                  key={agent.id}
+                  className={cn(
+                    "w-full text-left px-3 py-2 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center gap-2 transition-colors",
+                    selectedAgent?.id === agent.id && "bg-amber-50 dark:bg-amber-900/20"
+                  )}
+                  onClick={() => selectAgent(agent)}
+                >
+                  <div
+                    className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: `${agent.color}20`, color: agent.color }}
+                  >
+                    <Bot className="h-3 w-3" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium">{agent.name}</span>
+                    {agent.isDefault && (
+                      <span className="text-amber-500 text-[9px] ml-1">par défaut</span>
+                    )}
+                    <p className="text-stone-400 truncate text-[10px]">{agent.description}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* ─── Body (hidden when minimized) ──────────────────────────── */}
           {!isMinimized && (
             <>
@@ -149,10 +267,10 @@ export function GlobalAIChatPanel() {
                       <Sparkles className="h-6 w-6 text-amber-500" />
                     </div>
                     <h4 className="text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                      Assistant IA — {label}
+                      {currentLabel}
                     </h4>
                     <p className="text-xs text-stone-400 max-w-[260px] mx-auto">
-                      {CONTEXT_GREETINGS[context]}
+                      {currentGreeting}
                     </p>
                   </div>
                 ) : (
@@ -180,9 +298,12 @@ export function GlobalAIChatPanel() {
                         >
                           <div className="whitespace-pre-wrap">{msg.content}</div>
                           <div className={cn(
-                            "text-[9px] mt-1",
+                            "text-[9px] mt-1 flex items-center gap-1",
                             msg.role === "user" ? "text-amber-200" : "text-stone-400"
                           )}>
+                            {msg.role === "assistant" && msg.agent && (
+                              <span className="font-medium">{msg.agent} ·</span>
+                            )}
                             {new Date(msg.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                           </div>
                         </div>

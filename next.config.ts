@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
   },
 
   // Silence Prisma build warning
-  serverExternalPackages: ["@prisma/client", "bcryptjs"],
+  serverExternalPackages: ["@prisma/client", "bcryptjs", "pdf-parse"],
 };
 
 export default nextConfig;

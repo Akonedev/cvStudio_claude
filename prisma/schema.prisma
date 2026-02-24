@@ -520,6 +520,46 @@ enum InvoiceStatus {
 }
 
 // ─────────────────────────────────────────────
+//  AI AGENTS
+// ─────────────────────────────────────────────
+
+model AIAgent {
+  id           String          @id @default(cuid())
+  name         String
+  slug         String          @unique
+  description  String          @db.Text
+  systemPrompt String          @db.Text
+  context      AIAgentContext  @default(GENERAL)
+  icon         String?         @default("bot")
+  color        String?         @default("#f59e0b")
+  isActive     Boolean         @default(true)
+  isDefault    Boolean         @default(false)
+  temperature  Float           @default(0.7)
+  maxTokens    Int             @default(2048)
+  providerId   String?
+  modelName    String?
+  greeting     String?         @db.Text
+  capabilities Json?
+  priority     Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  provider AIProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@map("ai_agents")
+}
+
+enum AIAgentContext {
+  CV
+  COVER_LETTER
+  INTERVIEW
+  JOB_MATCHER
+  ATS
+  CAREER
+  GENERAL
+}
+
+// ─────────────────────────────────────────────
 //  AI PROVIDERS & MODELS
 // ─────────────────────────────────────────────
 
@@ -539,6 +579,7 @@ model AIProvider {
 
   models    AIModel[]
   usageLogs AIUsageLog[]
+  agents    AIAgent[]
 
   @@map("ai_providers")
 }

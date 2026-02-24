@@ -6,10 +6,12 @@ export interface AIMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: number;
+  agent?: string;
 }
 
 interface UseAIChatOptions {
   context?: "cv" | "cover-letter" | "job-matcher" | "interview" | "general";
+  agentId?: string;
   cvId?: string;
   jobOfferId?: string;
   systemInstructions?: string;
@@ -17,11 +19,13 @@ interface UseAIChatOptions {
 
 /**
  * Hook for interacting with the AI chat API across all panels.
+ * Supports agent-based routing via agentId.
  */
 export function useAIChat(options: UseAIChatOptions = {}) {
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeAgent, setActiveAgent] = useState<string | undefined>(options.agentId);
   const abortRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(async (content: string) => {
@@ -51,6 +55,7 @@ export function useAIChat(options: UseAIChatOptions = {}) {
         body: JSON.stringify({
           messages: history,
           context: options.context ?? "general",
+          agentId: activeAgent,
           cvId: options.cvId,
           jobOfferId: options.jobOfferId,
         }),
@@ -65,6 +70,7 @@ export function useAIChat(options: UseAIChatOptions = {}) {
         role: "assistant",
         content: json.data.content,
         timestamp: Date.now(),
+        agent: json.data.agent,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
@@ -77,7 +83,7 @@ export function useAIChat(options: UseAIChatOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, options]);
+  }, [messages, options, activeAgent]);
 
   const clearHistory = useCallback(() => {
     setMessages([]);
@@ -89,8 +95,21 @@ export function useAIChat(options: UseAIChatOptions = {}) {
     setIsLoading(false);
   }, []);
 
+  const switchAgent = useCallback((agentId: string | undefined) => {
+    setActiveAgent(agentId);
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  return { messages, isLoading, error, sendMessage, clearHistory, cancelRequest };
+  return {
+    messages,
+    isLoading,
+    error,
+    sendMessage,
+    clearHistory,
+    cancelRequest,
+    activeAgent,
+    switchAgent,
+  };
 }

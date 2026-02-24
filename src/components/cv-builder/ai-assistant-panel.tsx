@@ -148,9 +148,12 @@ export function AIAssistantPanel({ cvId }: AIAssistantPanelProps) {
                 >
                   <div className="whitespace-pre-wrap">{msg.content}</div>
                   <div className={cn(
-                    "text-[9px] mt-1",
+                    "text-[9px] mt-1 flex items-center gap-1",
                     msg.role === "user" ? "text-amber-200" : "text-stone-400"
                   )}>
+                    {msg.role === "assistant" && msg.agent && (
+                      <span className="font-medium">{msg.agent} ·</span>
+                    )}
                     {new Date(msg.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>

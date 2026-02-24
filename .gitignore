@@ -24,6 +24,12 @@ Thumbs.db
 .idea/
 .vscode/settings.json
 
+# ── Test / debug temp files ───────────────────────────────────────────────────
+cookies*.txt
+csrf*.json
+*_result.json
+*_test.json
+
 # ── Build artifacts ───────────────────────────────────────────────────────────
 dist/
 build/

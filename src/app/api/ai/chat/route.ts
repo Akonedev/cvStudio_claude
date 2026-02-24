@@ -10,29 +10,65 @@ const ChatSchema = z.object({
     content: z.string(),
   })).min(1),
   context: z.enum(["cv", "cover-letter", "job-matcher", "interview", "general"]).default("general"),
+  agentId: z.string().optional(),
   cvId: z.string().optional(),
   jobOfferId: z.string().optional(),
 });
 
+// Fallback system prompts when no agent is found
+const FALLBACK_PROMPTS: Record<string, string> = {
+  "cv": "Tu es un expert senior RH et créateur de CV. Tu aides à optimiser les CV pour maximiser les chances d'être retenu. Tu connais les meilleures pratiques ATS, les normes européennes et françaises de rédaction de CV.",
+  "cover-letter": "Tu es un expert senior en rédaction de lettres de motivation professionnelles en français. Tu rédiges des lettres percutantes, personnalisées et conformes aux standards RH français.",
+  "job-matcher": "Tu es un expert en analyse d'offres d'emploi et en matching RH. Tu analyses les correspondances entre profils et postes, identifies les forces et lacunes.",
+  "interview": "Tu es un coach expert en préparation aux entretiens d'embauche avec 20 ans d'expérience en recrutement. Tu prépares les candidats avec des questions, conseils et feedbacks constructifs.",
+  "general": "Tu es un assistant expert polyvalent en recherche d'emploi, carrière et développement professionnel en France. Tu donnes des conseils précis, actionnables et adaptés au marché du travail français.",
+};
+
 /**
  * POST /api/ai/chat
- * Universal AI chat endpoint used by all panels.
+ * Universal AI chat endpoint — supports agent-based routing.
  */
 export const POST = withAuth(async (req: NextRequest, session) => {
   const body = await req.json();
   const parsed = ChatSchema.safeParse(body);
   if (!parsed.success) return err(parsed.error.message, 400);
 
-  // Build context-aware system prompt
-  const contextPrompts: Record<string, string> = {
-    "cv": "Tu es un expert senior RH et créateur de CV. Tu aides à optimiser les CV pour maximiser les chances d'être retenu. Tu connais les meilleures pratiques ATS, les normes européennes et françaises de rédaction de CV.",
-    "cover-letter": "Tu es un expert senior en rédaction de lettres de motivation professionnelles en français. Tu rédiges des lettres percutantes, personnalisées et conformes aux standards RH français.",
-    "job-matcher": "Tu es un expert en analyse d'offres d'emploi et en matching RH. Tu analyses les correspondances entre profils et postes, identifies les forces et lacunes.",
-    "interview": "Tu es un coach expert en préparation aux entretiens d'embauche avec 20 ans d'expérience en recrutement. Tu prépares les candidats avec des questions, conseils et feedbacks constructifs.",
-    "general": "Tu es un assistant expert polyvalent en recherche d'emploi, carrière et développement professionnel en France. Tu donnes des conseils précis, actionnables et adaptés au marché du travail français.",
-  };
+  let systemContent = FALLBACK_PROMPTS[parsed.data.context] || FALLBACK_PROMPTS.general;
+  let temperature = 0.7;
+  let maxTokens = 2000;
+  let agentName: string | undefined;
 
-  const systemContent = contextPrompts[parsed.data.context] || contextPrompts.general;
+  // Try to use a specific agent
+  if (parsed.data.agentId) {
+    const agent = await prisma.aIAgent.findFirst({
+      where: { id: parsed.data.agentId, isActive: true },
+    });
+    if (agent) {
+      systemContent = agent.systemPrompt;
+      temperature = agent.temperature;
+      maxTokens = agent.maxTokens;
+      agentName = agent.name;
+    }
+  } else {
+    // Auto-select default agent for context
+    const contextMap: Record<string, string> = {
+      cv: "CV",
+      "cover-letter": "COVER_LETTER",
+      "job-matcher": "JOB_MATCHER",
+      interview: "INTERVIEW",
+      general: "GENERAL",
+    };
+    const dbContext = contextMap[parsed.data.context] || "GENERAL";
+    const agent = await prisma.aIAgent.findFirst({
+      where: { context: dbContext as never, isActive: true, isDefault: true },
+    });
+    if (agent) {
+      systemContent = agent.systemPrompt;
+      temperature = agent.temperature;
+      maxTokens = agent.maxTokens;
+      agentName = agent.name;
+    }
+  }
 
   // Fetch context data if provided
   let contextData = "";
@@ -53,7 +89,12 @@ export const POST = withAuth(async (req: NextRequest, session) => {
     ...parsed.data.messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
   ];
 
-  const response = await createCompletion({ messages, maxTokens: 2000, temperature: 0.7 }, session.user.id);
+  const response = await createCompletion({ messages, maxTokens, temperature }, session.user.id);
 
-  return ok({ content: response.content, model: response.model, provider: response.provider });
+  return ok({
+    content: response.content,
+    model: response.model,
+    provider: response.provider,
+    agent: agentName,
+  });
 });
