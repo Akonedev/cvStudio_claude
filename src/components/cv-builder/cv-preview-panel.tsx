@@ -1,9 +1,24 @@
 "use client";
 
 import { useCVEditorStore } from "@/store/cv-editor-store";
-import { getSidebarThemeColor } from "@/lib/cv-templates";
+import { getTemplateById, getSidebarThemeColor } from "@/lib/cv-templates";
 import { cn } from "@/lib/utils";
 import { Mail, Phone, MapPin, Linkedin, Github, Globe, User } from "lucide-react";
+import type { TemplateRendererProps } from "./templates/template-types";
+import { TemplateExecutive } from "./templates/template-executive";
+import { TemplateClassicSidebar } from "./templates/template-classic-sidebar";
+import { TemplateTimeline } from "./templates/template-timeline";
+import { TemplateCompact } from "./templates/template-compact";
+import { TemplateCreative } from "./templates/template-creative";
+
+// ─── Template renderer registry ────────────────────────────────────────────
+const TEMPLATE_RENDERERS: Record<string, React.ComponentType<TemplateRendererProps>> = {
+  "executive-v1": TemplateExecutive,
+  "classic-sidebar-v1": TemplateClassicSidebar,
+  "timeline-v1": TemplateTimeline,
+  "compact-v1": TemplateCompact,
+  "creative-v1": TemplateCreative,
+};
 
 // ─── Sidebar width mapping ─────────────────────────────────────────────────
 function sidebarWidthPx(w: string) {
@@ -15,7 +30,6 @@ function sidebarWidthPx(w: string) {
 // ─── Accent color utility ───────────────────────────────────────────────────
 function isLightSidebar(color: string) {
   if (!color || color === "transparent") return true;
-  // Simple check: if hex value is light
   const hex = color.replace("#", "");
   if (hex.length === 6) {
     const r = parseInt(hex.slice(0, 2), 16);
@@ -31,6 +45,26 @@ export function CVPreviewPanel() {
     data, headerConfig, sidebarConfig, sections, template,
   } = useCVEditorStore();
 
+  // ── Check for custom template renderer ────────────────────────────────────
+  const Renderer = TEMPLATE_RENDERERS[template];
+  if (Renderer) {
+    const tmpl = getTemplateById(template);
+    const props: TemplateRendererProps = {
+      data,
+      sections,
+      headerConfig,
+      sidebarConfig,
+      accentColor: tmpl.accentColor,
+      fontHeading: tmpl.fontHeading,
+      fontBody: tmpl.fontBody,
+    };
+    return <Renderer {...props} />;
+  }
+
+  // ── Fallback: legacy default rendering ────────────────────────────────────
+  const tmplFallback = getTemplateById(template);
+  const accent = tmplFallback.accentColor || "#F59E0B";
+
   const { personalInfo: info, summary, experience, education, skills, languages, certifications, projects, hobbies } = data;
   const fullName = [info.firstName, info.lastName].filter(Boolean).join(" ") || "Votre Nom";
 
@@ -38,9 +72,8 @@ export function CVPreviewPanel() {
   const sidebarLight = isLightSidebar(sidebarColor);
   const sidebarTextClass = sidebarLight ? "text-stone-800" : "text-white";
   const sidebarMutedClass = sidebarLight ? "text-stone-500" : "text-stone-300";
-  const sidebarLabelClass = sidebarLight ? "text-stone-600" : "text-amber-400";
+  const sidebarLabelClass = sidebarLight ? "text-stone-600" : "text-stone-300";
   const sidebarBadgeBg = sidebarLight ? "bg-stone-200 text-stone-700" : "bg-white/10 text-stone-200";
-  const accentColor = sidebarLight ? "text-stone-800" : "text-amber-400";
 
   // Sections logic: sidebar sections vs main sections
   const enabledSections = sections.filter((s) => s.enabled).sort((a, b) => a.order - b.order);
@@ -90,11 +123,12 @@ export function CVPreviewPanel() {
               <div className="text-center mb-2">
                 {headerConfig.showPhoto && (
                   <div className={cn("w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-3 border-2",
-                    sidebarLight ? "bg-stone-100 border-stone-300" : "bg-amber-500/20 border-amber-400/40")}>
+                    sidebarLight ? "bg-stone-100 border-stone-300" : "border-white/20")}
+                    style={!sidebarLight ? { backgroundColor: accent + "30" } : undefined}>
                     {info.photo ? (
                       <img src={info.photo} alt={fullName} className="w-full h-full rounded-full object-cover" />
                     ) : (
-                      <span className={cn("text-2xl font-bold", accentColor)}>
+                      <span className="text-2xl font-bold" style={{ color: accent }}>
                         {info.firstName?.[0]?.toUpperCase() ?? ""}{info.lastName?.[0]?.toUpperCase() ?? ""}
                       </span>
                     )}
@@ -190,7 +224,7 @@ export function CVPreviewPanel() {
         <div className="flex-1 p-8 overflow-hidden">
           {/* Header (when not in sidebar) */}
           {!infoInSidebar && (
-            <div className={cn("pb-5 mb-6", headerConfig.style === "bold" ? "border-b-4" : "border-b-2", "border-amber-400")}>
+            <div className={cn("pb-5 mb-6")} style={{ borderBottom: `${headerConfig.style === "bold" ? "4px" : "2px"} solid ${accent}` }}>
               {headerConfig.showPhoto && (
                 <div className="float-right ml-4 mb-2">
                   <div className="w-16 h-16 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center">
@@ -208,7 +242,7 @@ export function CVPreviewPanel() {
                 </h1>
               )}
               {headerConfig.showTitle && info.jobTitle && (
-                <div className="text-[11pt] text-amber-600 font-medium">{info.jobTitle}</div>
+                <div className="text-[11pt] font-medium" style={{ color: accent }}>{info.jobTitle}</div>
               )}
               {contactItems.length > 0 && (
                 <div className="flex flex-wrap gap-3 mt-2 text-[7.5pt] text-stone-500">
@@ -229,7 +263,7 @@ export function CVPreviewPanel() {
               case "summary":
                 return summary ? (
                   <div key={sec.id} className="mb-5">
-                    <SectionTitle>{sec.label}</SectionTitle>
+                    <SectionTitle accent={accent}>{sec.label}</SectionTitle>
                     <p className="text-[8pt] text-stone-600 leading-relaxed">{summary}</p>
                   </div>
                 ) : null;
@@ -237,7 +271,7 @@ export function CVPreviewPanel() {
               case "experience":
                 return experience.length > 0 ? (
                   <div key={sec.id} className="mb-5">
-                    <SectionTitle>{sec.label}</SectionTitle>
+                    <SectionTitle accent={accent}>{sec.label}</SectionTitle>
                     <div className="space-y-4">
                       {experience.map((exp) => (
                         <div key={exp.id}>
@@ -272,7 +306,7 @@ export function CVPreviewPanel() {
               case "education":
                 return education.length > 0 ? (
                   <div key={sec.id} className="mb-5">
-                    <SectionTitle>{sec.label}</SectionTitle>
+                    <SectionTitle accent={accent}>{sec.label}</SectionTitle>
                     <div className="space-y-3">
                       {education.map((edu) => (
                         <div key={edu.id} className="flex items-start justify-between">
@@ -294,7 +328,7 @@ export function CVPreviewPanel() {
                 // Only render in main if not in sidebar
                 return !sidebarSections.some((s) => s.type === "skills") && skills.length > 0 ? (
                   <div key={sec.id} className="mb-5">
-                    <SectionTitle>{sec.label}</SectionTitle>
+                    <SectionTitle accent={accent}>{sec.label}</SectionTitle>
                     <div className="flex flex-wrap gap-1.5">
                       {skills.map((s) => (
                         <span key={s.id} className="text-[7.5pt] bg-stone-100 text-stone-600 rounded px-2 py-0.5 border border-stone-200">
@@ -308,7 +342,7 @@ export function CVPreviewPanel() {
               case "languages":
                 return !sidebarSections.some((s) => s.type === "languages") && languages.length > 0 ? (
                   <div key={sec.id} className="mb-5">
-                    <SectionTitle>{sec.label}</SectionTitle>
+                    <SectionTitle accent={accent}>{sec.label}</SectionTitle>
                     <div className="flex flex-wrap gap-3">
                       {languages.map((l) => (
                         <span key={l.id} className="text-[8pt] text-stone-600">
@@ -322,7 +356,7 @@ export function CVPreviewPanel() {
               case "certifications":
                 return !sidebarSections.some((s) => s.type === "certifications") && certifications.length > 0 ? (
                   <div key={sec.id} className="mb-5">
-                    <SectionTitle>{sec.label}</SectionTitle>
+                    <SectionTitle accent={accent}>{sec.label}</SectionTitle>
                     <div className="space-y-2">
                       {certifications.map((c) => (
                         <div key={c.id}>
@@ -337,7 +371,7 @@ export function CVPreviewPanel() {
               case "projects":
                 return projects.length > 0 ? (
                   <div key={sec.id} className="mb-5">
-                    <SectionTitle>{sec.label}</SectionTitle>
+                    <SectionTitle accent={accent}>{sec.label}</SectionTitle>
                     <div className="space-y-3">
                       {projects.map((p) => (
                         <div key={p.id}>
@@ -346,7 +380,7 @@ export function CVPreviewPanel() {
                           {p.technologies.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {p.technologies.map((t, i) => (
-                                <span key={i} className="text-[6.5pt] bg-amber-50 text-amber-700 rounded px-1.5 py-0.5">{t}</span>
+                                <span key={i} className="text-[6.5pt] rounded px-1.5 py-0.5" style={{ backgroundColor: accent + "15", color: accent }}>{t}</span>
                               ))}
                             </div>
                           )}
@@ -359,7 +393,7 @@ export function CVPreviewPanel() {
               case "hobbies":
                 return !sidebarSections.some((s) => s.type === "hobbies") && hobbies.length > 0 ? (
                   <div key={sec.id} className="mb-5">
-                    <SectionTitle>{sec.label}</SectionTitle>
+                    <SectionTitle accent={accent}>{sec.label}</SectionTitle>
                     <p className="text-[8pt] text-stone-600">{hobbies.join(" · ")}</p>
                   </div>
                 ) : null;
@@ -374,9 +408,10 @@ export function CVPreviewPanel() {
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children, accent }: { children: React.ReactNode; accent?: string }) {
   return (
-    <div className="text-[7pt] uppercase tracking-widest text-amber-600 font-semibold mb-2 border-b border-amber-200 pb-1">
+    <div className="text-[7pt] uppercase tracking-widest font-semibold mb-2 pb-1"
+      style={{ color: accent || "#D97706", borderBottom: `1px solid ${accent ? accent + "40" : "#FDE68A"}` }}>
       {children}
     </div>
   );

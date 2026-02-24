@@ -441,7 +441,30 @@ export const useCVEditorStore = create<CVEditorStore>()(
       },
 
       setCvTitle: (title) => set({ cvTitle: title, isDirty: true }),
-      setTemplate: (template) => set({ template, isDirty: true }),
+
+      setTemplate: (templateId) => {
+        // Import is lazy to avoid circular dependency at module level
+        const { getTemplateById } = require("@/lib/cv-templates");
+        const tmpl = getTemplateById(templateId);
+        const patch: Partial<CVEditorStore> = {
+          template: templateId,
+          isDirty: true,
+        };
+        // Apply template sidebar/header settings
+        if (tmpl) {
+          patch.sidebarConfig = {
+            ...get().sidebarConfig,
+            enabled: tmpl.hasSidebar,
+            fullHeight: tmpl.sidebarFullHeight,
+            width: tmpl.sidebarWidth,
+          };
+          patch.headerConfig = {
+            ...get().headerConfig,
+            style: tmpl.headerStyle,
+          };
+        }
+        set(patch);
+      },
 
       setHeaderConfig: (config) =>
         set((s) => ({ headerConfig: { ...s.headerConfig, ...config }, isDirty: true })),
